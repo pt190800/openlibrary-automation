@@ -9,9 +9,9 @@ from pathlib import Path
 from playwright.async_api import async_playwright
 from dotenv import load_dotenv
 
-load_dotenv()
+from config.settings import BASE_URL
 
-BASE_URL = "https://openlibrary.org"
+load_dotenv()
 SCREENSHOTS_DIR = Path("screenshots")
 TRACES_DIR = Path("reports/traces")
 SCREENSHOTS_DIR.mkdir(exist_ok=True)

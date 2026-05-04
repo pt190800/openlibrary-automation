@@ -1,17 +1,16 @@
-import json
 import logging
 import os
 import pytest
 import allure
 
+from config.settings import BASE_URL, CFG
 from utils.flows import LibraryFlows
 from utils.performance import PerformanceReporter
+from pages.search_page import SearchPage
+from pages.book_page import BookPage
+from pages.reading_list_page import ReadingListPage
 
-BASE_URL = "https://openlibrary.org"
 logger = logging.getLogger(__name__)
-
-with open("config/test_data.json") as _f:
-    CFG = json.load(_f)
 
 
 # ── tests ───────────────────────────────────────────────────────────────────
@@ -155,9 +154,9 @@ class TestPerformance:
         thresholds = CFG["performance_thresholds"]
         reporter = PerformanceReporter(page)
 
-        await reporter.measure(f"{BASE_URL}/search?q=Dune", thresholds["search_page"], selector="li.searchResultItem")
-        await reporter.measure(BASE_URL + CFG["known_book_path"], thresholds["book_page"], selector="h1")
-        await reporter.measure(f"{BASE_URL}/account/books/want-to-read", thresholds["reading_list"], selector="h1")
+        await reporter.measure(f"{BASE_URL}/search?q=Dune", thresholds["search_page"], selector=SearchPage.RESULT_ITEMS)
+        await reporter.measure(BASE_URL + CFG["known_book_path"], thresholds["book_page"], selector=BookPage.READY_SELECTOR)
+        await reporter.measure(f"{BASE_URL}/account/books/want-to-read", thresholds["reading_list"], selector=ReadingListPage.READY_SELECTOR)
 
         report_path = reporter.save()
 

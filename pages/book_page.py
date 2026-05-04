@@ -6,6 +6,7 @@ logger = logging.getLogger(__name__)
 
 
 class BookPage(BasePage):
+    READY_SELECTOR   = "h1"
     PRIMARY_BTN      = "button.book-progress-btn.primary-action"
     DROPDOWN_TOGGLE  = "a.generic-dropper__dropclick"
     WANT_TO_READ_BTN = "div.read-statuses button:has-text('Want to Read')"

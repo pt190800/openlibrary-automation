@@ -1,10 +1,10 @@
 from .base_page import BasePage
-
-BASE_URL = "https://openlibrary.org"
+from config.settings import BASE_URL
 
 
 class ReadingListPage(BasePage):
     BOOK_ITEMS = "li.searchResultItem"
+    READY_SELECTOR = "h1"
 
     async def open(self):
         await self.navigate(f"{BASE_URL}/account/books/want-to-read")

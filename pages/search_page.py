@@ -1,7 +1,6 @@
 import re
 from .base_page import BasePage
-
-BASE_URL = "https://openlibrary.org"
+from config.settings import BASE_URL
 
 
 class SearchPage(BasePage):

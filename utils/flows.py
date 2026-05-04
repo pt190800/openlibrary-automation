@@ -2,11 +2,11 @@ import logging
 import allure
 from playwright.async_api import Page
 
+from config.settings import BASE_URL
 from pages.search_page import SearchPage
 from pages.book_page import BookPage
 from pages.reading_list_page import ReadingListPage
 
-BASE_URL = "https://openlibrary.org"
 logger = logging.getLogger(__name__)
 
 
