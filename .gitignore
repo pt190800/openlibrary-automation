@@ -4,5 +4,3 @@ __pycache__/
 .env
 session.json
 screenshots/
-reports/
-performance_report.json
