@@ -1,3 +1,0 @@
-[33mWARNING [0m utils.performance:performance.py:49 Slow page [https://openlibrary.org/works/OL27448W]: load_time=3638ms > 2500ms
-[33mWARNING [0m tests.test_openlibrary:test_openlibrary.py:181 Slow pages:
-https://openlibrary.org/works/OL27448W: 3633ms > 2500ms

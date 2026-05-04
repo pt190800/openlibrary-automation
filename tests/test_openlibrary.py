@@ -170,7 +170,7 @@ class TestPerformance:
         slow_pages = [
             f"{r['url']}: {r['dom_content_loaded_ms']}ms > {r['threshold_ms']}ms"
             for r in reporter.results
-            if r["dom_content_loaded_ms"] > r["threshold_ms"]
+            if r["dom_content_loaded_ms"] is not None and r["dom_content_loaded_ms"] > r["threshold_ms"]
         ]
         if slow_pages:
             allure.attach(

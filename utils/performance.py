@@ -8,12 +8,12 @@ from playwright.async_api import Page
 logger = logging.getLogger(__name__)
 
 _JS = """() => {
-    const t = performance.timing;
+    const nav = performance.getEntriesByType('navigation')[0];
     const paint = performance.getEntriesByType('paint');
     const fp = paint.find(e => e.name === 'first-paint');
     return {
-        load_time_ms: t.loadEventEnd - t.navigationStart,
-        dom_content_loaded_ms: t.domContentLoadedEventEnd - t.navigationStart,
+        load_time_ms: nav && nav.loadEventEnd > 0 ? Math.round(nav.loadEventEnd) : null,
+        dom_content_loaded_ms: nav && nav.domContentLoadedEventEnd > 0 ? Math.round(nav.domContentLoadedEventEnd) : null,
         first_paint_ms: fp ? Math.round(fp.startTime) : null
     };
 }"""
