@@ -1,4 +1,5 @@
 import logging
+import random
 from .base_page import BasePage
 
 logger = logging.getLogger(__name__)
@@ -26,18 +27,12 @@ class BookPage(BasePage):
             if await self.page.query_selector(sel):
                 raise RuntimeError(f"CAPTCHA זוהה. URL: {url}\nהמתן מספר דקות והרץ שוב.")
 
-    async def _click_want_to_read(self) -> bool:
-        """Click primary 'Want to Read' only when book is NOT in any reading list (unactivated).
-        Never touches dropdown — clicking 'Want to Read' in dropdown on an already-listed book removes it."""
+    async def _is_unactivated(self) -> bool:
+        """Return True if the book is not yet in any reading list."""
         btn = await self.page.query_selector(self.PRIMARY_BTN)
         if btn and await btn.is_visible():
             classes = await btn.get_attribute("class") or ""
-            if "unactivated" in classes:
-                await self._human_click(self.PRIMARY_BTN)
-                await self.page.wait_for_load_state("load", timeout=15000)
-                return True
-        # Book already in some reading list state (or button not found) — skip
-        logger.info(f"Book already in reading list or no primary button: {self.page.url}")
+            return "unactivated" in classes
         return False
 
     async def _click_via_dropdown(self, selector: str) -> bool:
@@ -58,9 +53,25 @@ class BookPage(BasePage):
 
     async def add_to_reading_list(self) -> str:
         await self._assert_authenticated()
-        if await self._click_want_to_read():
+        if not await self._is_unactivated():
+            logger.info(f"Book already in reading list or no button: {self.page.url}")
+            return "not_added"
+
+        choice = random.choice(["Want to Read", "Already Read"])
+        logger.info(f"Random choice: '{choice}' for {self.page.url}")
+
+        if choice == "Want to Read":
+            await self._human_click(self.PRIMARY_BTN)
+            await self.page.wait_for_load_state("load", timeout=15000)
             await self._delay("action")
-            logger.info(f"Clicked 'Want to Read' on {self.page.url}")
             return "Want to Read"
-        logger.info(f"Book already in reading list or no button: {self.page.url}")
-        return "not_added"
+        else:
+            if await self._click_via_dropdown(self.ALREADY_READ_BTN):
+                await self._delay("action")
+                return "Already Read"
+            # Fallback: dropdown failed, use primary button
+            logger.warning(f"Dropdown failed, falling back to 'Want to Read': {self.page.url}")
+            await self._human_click(self.PRIMARY_BTN)
+            await self.page.wait_for_load_state("load", timeout=15000)
+            await self._delay("action")
+            return "Want to Read"

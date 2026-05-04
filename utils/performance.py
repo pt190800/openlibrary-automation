@@ -12,6 +12,7 @@ _JS = """() => {
     const paint = performance.getEntriesByType('paint');
     const fp = paint.find(e => e.name === 'first-paint');
     return {
+        load_time_ms: t.loadEventEnd - t.navigationStart,
         dom_content_loaded_ms: t.domContentLoadedEventEnd - t.navigationStart,
         first_paint_ms: fp ? Math.round(fp.startTime) : null
     };
@@ -43,9 +44,10 @@ class PerformanceReporter:
             "timestamp": datetime.now().isoformat(),
         }
 
-        if time_to_element_ms > threshold_ms:
+        load_time_ms = browser_metrics.get("load_time_ms") or time_to_element_ms
+        if load_time_ms > threshold_ms:
             logger.warning(
-                f"Slow page [{url}]: time_to_element={time_to_element_ms}ms > {threshold_ms}ms"
+                f"Slow page [{url}]: load_time={load_time_ms}ms > {threshold_ms}ms"
             )
 
         self._results.append(metrics)

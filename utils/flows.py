@@ -36,7 +36,7 @@ class LibraryFlows:
 
     @allure.step("Add {0.__len__} books to reading list")
     async def add_books_to_reading_list(self, urls: list[str]) -> int:
-        """Returns the number of books added to 'Want to Read'."""
+        """Returns the number of books added to 'Want to Read' (excluding 'Already Read')."""
         book = BookPage(self.page)
         await self._assert_session()
 
@@ -53,6 +53,8 @@ class LibraryFlows:
                     )
                 if action == "Want to Read":
                     want_to_read_count += 1
+                elif action == "Already Read":
+                    logger.info(f"Book added to 'Already Read' — not counted in want-to-read: {url}")
         return want_to_read_count
 
     @allure.step("Get reading list count")
