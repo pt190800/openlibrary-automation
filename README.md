@@ -153,6 +153,7 @@ pytest -m auth
 ```
 openlibrary_automation/
 ├── config/
+│   ├── settings.py              # Single source of truth: BASE_URL + CFG
 │   └── test_data.json           # Data-driven inputs: queries, thresholds, profiles
 ├── pages/                       # Page Object Model
 │   ├── base_page.py             # Navigation + exponential backoff + human mouse + screenshots
@@ -200,9 +201,9 @@ All test inputs live in `config/test_data.json` — change without touching code
     { "query": "Lord of the Rings", "max_year": 1970, "limit": 3 }
   ],
   "performance_thresholds": {
-    "search_page": 8000,
-    "book_page": 6000,
-    "reading_list": 5000
+    "search_page": 3000,
+    "book_page": 2500,
+    "reading_list": 2000
   },
   "known_book_path": "/works/OL27448W",
   "profiles": {
