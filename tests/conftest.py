@@ -32,7 +32,8 @@ STEALTH_LAUNCH_ARGS = ["--disable-blink-features=AutomationControlled"]
 
 
 async def _new_stealth_context(p, storage_state=None):
-    browser = await p.chromium.launch(headless=False, args=STEALTH_LAUNCH_ARGS)
+    headless = os.getenv("HEADLESS", "0").lower() in ("1", "true", "yes")
+    browser = await p.chromium.launch(headless=headless, args=STEALTH_LAUNCH_ARGS)
     kwargs = {"user_agent": STEALTH_UA}
     if storage_state:
         kwargs["storage_state"] = storage_state
@@ -122,8 +123,6 @@ def pytest_runtest_makereport(item, call):
         pg = item.funcargs.get("page") or item.funcargs.get("auth_page")
         if pg:
             try:
-                asyncio.get_event_loop().run_until_complete(_capture_failure(pg, item.nodeid))
-            except RuntimeError:
                 asyncio.run(_capture_failure(pg, item.nodeid))
             except Exception as e:
                 print(f"\n⚠️  failure capture error: {e}")

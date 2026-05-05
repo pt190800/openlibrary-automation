@@ -29,7 +29,7 @@ class PerformanceReporter:
 
     async def measure(self, url: str, threshold_ms: int, selector: str) -> dict:
         t_start = time.monotonic()
-        await self.page.goto(url, wait_until="commit")
+        await self.page.goto(url, wait_until="load")
         await self.page.wait_for_selector(selector, state="attached", timeout=30000)
         time_to_element_ms = int((time.monotonic() - t_start) * 1000)
 
