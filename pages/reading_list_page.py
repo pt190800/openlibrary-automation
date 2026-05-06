@@ -3,7 +3,7 @@ from config.settings import BASE_URL
 
 
 class ReadingListPage(BasePage):
-    BOOK_ITEMS = "li.searchResultItem"
+    BOOK_ITEMS = "ul.list-books li.searchResultItem"
     READY_SELECTOR = "h1"
     NEXT_PAGE = "a[title='next page'], a[aria-label='Next Page']"
 
