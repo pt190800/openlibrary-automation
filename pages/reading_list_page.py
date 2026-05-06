@@ -5,7 +5,7 @@ from config.settings import BASE_URL
 class ReadingListPage(BasePage):
     BOOK_ITEMS = "li.searchResultItem"
     READY_SELECTOR = "h1"
-    NEXT_PAGE = "a[title='next page']"
+    NEXT_PAGE = "a[title='next page'], a[aria-label='Next Page']"
 
     async def open(self):
         await self.navigate(f"{BASE_URL}/account/books/want-to-read")

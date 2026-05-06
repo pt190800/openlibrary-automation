@@ -34,7 +34,7 @@ class LibraryFlows:
                 "הרץ: python3 save_session.py כדי לחדש את session.json"
             )
 
-    @allure.step("Add {0.__len__} books to reading list")
+    @allure.step("Add books to reading list")
     async def add_books_to_reading_list(self, urls: list[str]) -> int:
         """Returns the number of books added to 'Want to Read' (excluding 'Already Read')."""
         book = BookPage(self.page)

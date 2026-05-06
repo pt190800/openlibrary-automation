@@ -9,7 +9,7 @@ class SearchPage(BasePage):
     RESULT_ITEMS = "li.searchResultItem"
     BOOK_YEAR = "span.resultDetails"
     BOOK_LINK = "a[href*='/works/']"
-    NEXT_PAGE = "a[title='next page']"
+    NEXT_PAGE = "a[title='next page'], a[aria-label='Next Page']"
 
     async def search(self, query: str):
         await self.page.fill(self.SEARCH_INPUT, query)
