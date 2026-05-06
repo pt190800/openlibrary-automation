@@ -30,12 +30,18 @@ openlibrary_automation/
 │   ├── conftest.py              # Fixtures (page, auth_page), hooks, stealth browser setup
 │   └── test_openlibrary.py      # TestAuth, TestSearch, TestReadingList, TestPerformance
 │
-├── screenshots/                 # Auto-created: per-book + failure screenshots
-├── reports/
+├── screenshots/                 # Auto-created: per-book + failure screenshots (gitignored)
+├── reports/                     # Auto-created on every run (gitignored)
 │   ├── allure-results/          # Allure raw output
+│   ├── report.html              # Self-contained HTML report
 │   └── traces/                  # Playwright trace .zip per test
 │
-├── performance_report.json      # Auto-generated: page load metrics
+├── demo_run/                    # Committed snapshot of one real run (for reference)
+│   ├── report.html              # HTML report from that run
+│   ├── performance_report.json  # Performance metrics from that run
+│   ├── screenshots/             # One representative screenshot (Dune book page)
+│   └── traces/full_flow.zip     # Playwright trace of test_full_flow
+│
 ├── save_session.py              # Opens real browser for manual login → saves session.json
 ├── .env / .env.example          # Credentials — only needed for TestAuth
 ├── session.json                 # Created by save_session.py — not committed
@@ -124,7 +130,7 @@ Handles an individual book's works page on OpenLibrary.
 | `_assert_authenticated()` | Checks current URL and DOM for `/account/login` redirect, `#username` form, CAPTCHA iframes — raises `RuntimeError` with recovery hint on any failure |
 | `_is_unactivated()` | Returns `True` if `PRIMARY_BTN` has class `unactivated` (book not yet in any reading list) |
 | `_click_via_dropdown(selector)` | Opens dropdown via `DROPDOWN_TOGGLE`, waits for dropdown to expose `selector`, clicks it; returns `False` if dropdown didn't open |
-| `add_to_reading_list()` | Calls `_assert_authenticated()` → skips if already listed → randomly picks "Want to Read" (primary button click) or "Already Read" (dropdown path) → falls back to primary if dropdown fails → returns action string |
+| `add_to_reading_list()` | Calls `_assert_authenticated()` → skips if already listed → randomly picks "Want to Read" (primary button click) or "Already Read" (dropdown path) → falls back to primary if dropdown fails → **verifies button changed post-click** → returns action string or `"not_added"` |
 
 ---
 
@@ -135,7 +141,7 @@ Handles `/account/books/want-to-read`.
 | Method | What it does |
 |--------|-------------|
 | `open()` | Navigates to the want-to-read page via `BasePage.navigate()` |
-| `get_book_count()` | Counts `ul.list-books li.searchResultItem` items across **all pages** via pagination loop — returns total |
+| `get_book_count()` | Counts `ul.list-books li.searchResultItem` items across **all pages** (max 50) via pagination loop; 15s timeout per page — returns total |
 
 ---
 
@@ -231,8 +237,9 @@ LibraryFlows (flows.py)
       │
       ├──► BookPage.add_to_reading_list()   (per URL)
       │         ├── _assert_authenticated()
-      │         ├── _is_unactivated()
-      │         └── random: Want to Read (primary) | Already Read (dropdown)
+      │         ├── _is_unactivated()        ← skip if already listed
+      │         ├── random: Want to Read (primary) | Already Read (dropdown)
+      │         └── _is_unactivated() again  ← verify button changed (post-click guard)
       │
       └──► ReadingListPage.get_book_count()
                 └── paginate want-to-read page, sum ul.list-books li.searchResultItem
@@ -431,6 +438,9 @@ Profile selected via `TEST_PROFILE=quick` / `TEST_PROFILE=full` (default: `full`
 | Bot detection | Human mouse movement — random paths with overshoot before every click |
 | Session expiry | `_assert_session()` + `_assert_authenticated()` before every action |
 | Already-listed books | `unactivated` class check on primary button — skips books already in any list |
+| Book not actually added | Post-click `_is_unactivated()` check — returns `"not_added"` if button didn't change |
+| Pagination infinite loop | `_MAX_PAGES = 50` guard in `get_book_count()` — loop exits after 50 pages |
+| Slow reading list load | 15s timeout (raised from 5s) in `get_book_count()` — handles real-world latency |
 | Performance measurement | `wait_for_selector(state="attached")` + `time.monotonic()` — unaffected by external resources |
 | Hidden buttons | `_is_unactivated()` check — opens dropdown path instead of direct click |
 | CAPTCHA | Selector detection (4 selectors) → `RuntimeError` with clear recovery hint |
@@ -438,6 +448,21 @@ Profile selected via `TEST_PROFILE=quick` / `TEST_PROFILE=full` (default: `full`
 | Invalid filename | `re.sub(r"[^a-zA-Z0-9_-]", "_", name)[:120]` before every screenshot save |
 | Screenshot hang | `timeout=10000` + try/except — test never fails due to screenshot issue |
 | Burst retries | 3-attempt retry with 15s/30s/45s backoff inside `PerformanceReporter.measure()` |
+
+---
+
+## Demo Run
+
+`demo_run/` is a committed snapshot of one real test run — included so reviewers can inspect outputs without running the suite themselves.
+
+| File | Contents |
+|------|----------|
+| `demo_run/report.html` | Self-contained HTML report — open directly in browser |
+| `demo_run/performance_report.json` | Page load metrics (time-to-element, DOM, first-paint) |
+| `demo_run/screenshots/` | Screenshot of a Dune book page after it was added to the reading list |
+| `demo_run/traces/full_flow.zip` | Playwright trace of `test_full_flow` — open with `npx playwright show-trace demo_run/traces/full_flow.zip` |
+
+`reports/`, `screenshots/`, and `performance_report.json` are gitignored — they are regenerated on every `pytest` run.
 
 ---
 
