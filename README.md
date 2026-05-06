@@ -135,7 +135,7 @@ Handles `/account/books/want-to-read`.
 | Method | What it does |
 |--------|-------------|
 | `open()` | Navigates to the want-to-read page via `BasePage.navigate()` |
-| `get_book_count()` | Counts `li.searchResultItem` items across **all pages** via pagination loop — returns total |
+| `get_book_count()` | Counts `ul.list-books li.searchResultItem` items across **all pages** via pagination loop — returns total |
 
 ---
 
@@ -235,7 +235,7 @@ LibraryFlows (flows.py)
       │         └── random: Want to Read (primary) | Already Read (dropdown)
       │
       └──► ReadingListPage.get_book_count()
-                └── paginate want-to-read page, sum li.searchResultItem
+                └── paginate want-to-read page, sum ul.list-books li.searchResultItem
 
 Test assertion:  actual == count_before + want_to_read_count
 ```
