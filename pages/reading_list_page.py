@@ -2,6 +2,9 @@ from .base_page import BasePage
 from config.settings import BASE_URL
 
 
+_MAX_PAGES = 50
+
+
 class ReadingListPage(BasePage):
     BOOK_ITEMS = "ul.list-books li.searchResultItem"
     READY_SELECTOR = "h1"
@@ -12,9 +15,9 @@ class ReadingListPage(BasePage):
 
     async def get_book_count(self) -> int:
         total = 0
-        while True:
+        for _ in range(_MAX_PAGES):
             try:
-                await self.page.wait_for_selector(self.BOOK_ITEMS, timeout=5000)
+                await self.page.wait_for_selector(self.BOOK_ITEMS, timeout=15000)
             except Exception:
                 break
             items = await self.page.query_selector_all(self.BOOK_ITEMS)

@@ -65,14 +65,19 @@ class BookPage(BasePage):
             await self._human_click(self.PRIMARY_BTN)
             await self.page.wait_for_load_state("load", timeout=15000)
             await self._delay("action")
-            return "Want to Read"
         else:
             if await self._click_via_dropdown(self.ALREADY_READ_BTN):
                 await self._delay("action")
-                return "Already Read"
-            # Fallback: dropdown failed, use primary button
-            logger.warning(f"Dropdown failed, falling back to 'Want to Read': {self.page.url}")
-            await self._human_click(self.PRIMARY_BTN)
-            await self.page.wait_for_load_state("load", timeout=15000)
-            await self._delay("action")
-            return "Want to Read"
+            else:
+                # Fallback: dropdown failed, use primary button
+                logger.warning(f"Dropdown failed, falling back to 'Want to Read': {self.page.url}")
+                await self._human_click(self.PRIMARY_BTN)
+                await self.page.wait_for_load_state("load", timeout=15000)
+                await self._delay("action")
+                choice = "Want to Read"
+
+        if await self._is_unactivated():
+            logger.warning(f"Book still unactivated after click — not added: {self.page.url}")
+            return "not_added"
+
+        return choice
