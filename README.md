@@ -18,7 +18,19 @@ Built with **Python + Playwright**, Page Object Model architecture, data-driven 
 
 ## Setup
 
-### 1 — Install Python dependencies
+### 1 — Create and activate a virtual environment
+
+Ubuntu 24.04+ blocks system-wide pip installs — use a virtual environment:
+
+```bash
+python3 -m venv venv
+source venv/bin/activate
+```
+
+> **Re-activate before every session:** `source venv/bin/activate`  
+> Your prompt will show `(venv)` when the environment is active.
+
+### 2 — Install Python dependencies
 
 ```bash
 pip install -r requirements.txt
@@ -26,25 +38,25 @@ pip install -r requirements.txt
 
 Installs: `playwright`, `pytest`, `pytest-asyncio`, `allure-pytest`, `pytest-html`, `python-dotenv`
 
-### 2 — Install Chromium
+### 3 — Install Chromium
 
 ```bash
 playwright install chromium
 ```
 
-### 3 — Install Java (required for Allure)
+### 4 — Install Java (required for Allure)
 
 ```bash
 sudo apt install default-jre -y
 ```
 
-### 4 — Install Allure CLI
+### 5 — Install Allure CLI
 
 ```bash
 npm install -g allure-commandline
 ```
 
-### 5 — Save your session (required for reading list tests)
+### 6 — Save your session (required for reading list tests)
 
 ```bash
 python3 save_session.py
@@ -239,4 +251,4 @@ Profile selected via `TEST_PROFILE=quick` / `TEST_PROFILE=full` (default: `full`
 - **CAPTCHA** — If OpenLibrary detects unusual traffic, it shows a human verification page. Wait 10–15 minutes between runs.
 - **Reading list cleanup** — Tests do not delete added books. Repeated runs use delta-based assertion (before/after count).
 - **Selectors** — CSS classes on the site may change with OpenLibrary updates.
-- **headless=False** — Intentional; headless mode significantly increases CAPTCHA frequency.
+- **Headless mode** — Tests run headless (no browser window). Note this may increase CAPTCHA frequency on OpenLibrary.

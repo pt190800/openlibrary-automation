@@ -4,3 +4,5 @@ __pycache__/
 .env
 session.json
 screenshots/
+venv/
+extract_session.py
