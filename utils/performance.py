@@ -26,13 +26,26 @@ class PerformanceReporter:
         self.page = page
         self.report_path = Path(report_path)
         self._results: list[dict] = []
+        self.report_path.unlink(missing_ok=True)
 
     async def measure(self, url: str, threshold_ms: int, selector: str) -> dict:
-        t_start = time.monotonic()
-        await self.page.goto(url, wait_until="load")
-        await self.page.wait_for_selector(selector, state="attached", timeout=30000)
-        time_to_element_ms = int((time.monotonic() - t_start) * 1000)
+        last_exc: Exception | None = None
+        for attempt in range(3):
+            if attempt > 0:
+                wait_s = 15 * attempt
+                logger.warning(f"Retrying measure [{url}] in {wait_s}s (attempt {attempt + 1}/3)")
+                await self.page.wait_for_timeout(wait_s * 1000)
+            try:
+                t_start = time.monotonic()
+                await self.page.goto(url, wait_until="load")
+                await self.page.wait_for_selector(selector, state="attached", timeout=30000)
+                break
+            except Exception as e:
+                last_exc = e
+        else:
+            raise last_exc
 
+        time_to_element_ms = int((time.monotonic() - t_start) * 1000)
         browser_metrics = await self.page.evaluate(_JS)
 
         metrics = {

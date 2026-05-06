@@ -28,13 +28,19 @@ STEALTH_INIT_SCRIPT = """
     Object.defineProperty(navigator, 'languages', { get: () => ['en-US', 'en'] });
     window.chrome = { runtime: {} };
 """
-STEALTH_LAUNCH_ARGS = ["--disable-blink-features=AutomationControlled"]
+STEALTH_LAUNCH_ARGS = [
+    "--disable-blink-features=AutomationControlled",
+    "--no-sandbox",
+    "--disable-dev-shm-usage",
+    "--window-size=1920,1080",
+    "--disable-gpu",
+]
+STEALTH_VIEWPORT = {"width": 1920, "height": 1080}
 
 
 async def _new_stealth_context(p, storage_state=None):
-    headless = os.getenv("HEADLESS", "0").lower() in ("1", "true", "yes")
-    browser = await p.chromium.launch(headless=headless, args=STEALTH_LAUNCH_ARGS)
-    kwargs = {"user_agent": STEALTH_UA}
+    browser = await p.chromium.launch(headless=True, args=STEALTH_LAUNCH_ARGS)
+    kwargs = {"user_agent": STEALTH_UA, "viewport": STEALTH_VIEWPORT}
     if storage_state:
         kwargs["storage_state"] = storage_state
     ctx = await browser.new_context(**kwargs)
@@ -123,7 +129,11 @@ def pytest_runtest_makereport(item, call):
         pg = item.funcargs.get("page") or item.funcargs.get("auth_page")
         if pg:
             try:
-                asyncio.run(_capture_failure(pg, item.nodeid))
+                loop = asyncio.get_event_loop()
+                if loop.is_running():
+                    loop.create_task(_capture_failure(pg, item.nodeid))
+                else:
+                    loop.run_until_complete(_capture_failure(pg, item.nodeid))
             except Exception as e:
                 print(f"\n⚠️  failure capture error: {e}")
 

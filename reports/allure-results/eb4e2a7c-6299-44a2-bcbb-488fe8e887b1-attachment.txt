@@ -1,4 +1,0 @@
-[33mWARNING [0m utils.performance:performance.py:49 Slow page [https://openlibrary.org/search?q=Dune]: load_time=7723ms > 3000ms
-[33mWARNING [0m utils.performance:performance.py:49 Slow page [https://openlibrary.org/account/books/want-to-read]: load_time=2526ms > 2000ms
-[33mWARNING [0m tests.test_openlibrary:test_openlibrary.py:180 Slow pages:
-https://openlibrary.org/search?q=Dune: 7577ms > 3000ms

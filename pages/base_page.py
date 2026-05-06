@@ -63,10 +63,21 @@ class BasePage:
         await self.page.wait_for_timeout(random.randint(40, 100))
         await self.page.mouse.click(cx, cy)
 
+    _CONNECTION_ERRORS = ("ERR_CONNECTION_RESET", "ERR_CONNECTION_REFUSED", "ERR_CONNECTION_CLOSED", "ERR_EMPTY_RESPONSE")
+
     async def navigate(self, url: str):
-        """Navigate with exponential backoff on HTTP 429 (rate limit)."""
+        """Navigate with exponential backoff on HTTP 429 and connection resets."""
         for attempt in range(_MAX_RETRIES):
-            resp = await self.page.goto(url, wait_until="domcontentloaded")
+            try:
+                resp = await self.page.goto(url, wait_until="domcontentloaded")
+            except Exception as e:
+                if attempt < _MAX_RETRIES - 1 and any(err in str(e) for err in self._CONNECTION_ERRORS):
+                    wait_s = _BACKOFF_BASE * (2 ** attempt) + random.uniform(-_BACKOFF_JITTER, _BACKOFF_JITTER)
+                    logger.warning(f"Connection error on {url} — waiting {wait_s:.1f}s (attempt {attempt + 1}/{_MAX_RETRIES}): {e}")
+                    await asyncio.sleep(max(wait_s, 1))
+                    continue
+                raise
+
             if resp is None or resp.status != 429:
                 await self._human_mouse_move(steps=random.randint(2, 4))
                 await self._delay("navigate")
