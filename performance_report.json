@@ -2,31 +2,31 @@
   {
     "url": "https://openlibrary.org/search?q=Dune",
     "selector": "li.searchResultItem",
-    "time_to_element_ms": 18724,
+    "time_to_element_ms": 12189,
     "threshold_ms": 3000,
-    "load_time_ms": 18482,
-    "dom_content_loaded_ms": 10168,
-    "first_paint_ms": 9047,
-    "timestamp": "2026-05-06T17:29:47.108814"
+    "load_time_ms": 11944,
+    "dom_content_loaded_ms": 7572,
+    "first_paint_ms": 6749,
+    "timestamp": "2026-05-06T17:49:18.315358"
   },
   {
     "url": "https://openlibrary.org/works/OL27448W",
     "selector": "h1",
-    "time_to_element_ms": 3198,
+    "time_to_element_ms": 3774,
     "threshold_ms": 2500,
-    "load_time_ms": 2943,
-    "dom_content_loaded_ms": 1987,
-    "first_paint_ms": 1611,
-    "timestamp": "2026-05-06T17:29:50.334237"
+    "load_time_ms": 3584,
+    "dom_content_loaded_ms": 2074,
+    "first_paint_ms": 1883,
+    "timestamp": "2026-05-06T17:49:22.136355"
   },
   {
     "url": "https://openlibrary.org/account/books/want-to-read",
     "selector": "h1",
-    "time_to_element_ms": 3710,
+    "time_to_element_ms": 3234,
     "threshold_ms": 2000,
-    "load_time_ms": 3624,
-    "dom_content_loaded_ms": 1112,
-    "first_paint_ms": 1053,
-    "timestamp": "2026-05-06T17:29:54.063222"
+    "load_time_ms": 3141,
+    "dom_content_loaded_ms": 1103,
+    "first_paint_ms": 1045,
+    "timestamp": "2026-05-06T17:49:25.387718"
   }
 ]
