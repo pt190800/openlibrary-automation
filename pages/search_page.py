@@ -7,7 +7,7 @@ class SearchPage(BasePage):
     SEARCH_INPUT = "input[name='q']"
     SEARCH_BUTTON = "button[type='submit']"
     RESULT_ITEMS = "li.searchResultItem"
-    BOOK_YEAR = "span.resultDetails"
+    BOOK_YEAR = "span.resultDetails > span:first-child"
     BOOK_LINK = "a[href*='/works/']"
     NEXT_PAGE = "a[title='next page'], a[aria-label='Next Page']"
 

@@ -129,11 +129,11 @@ def pytest_runtest_makereport(item, call):
         pg = item.funcargs.get("page") or item.funcargs.get("auth_page")
         if pg:
             try:
-                loop = asyncio.get_event_loop()
-                if loop.is_running():
+                try:
+                    loop = asyncio.get_running_loop()
                     loop.create_task(_capture_failure(pg, item.nodeid))
-                else:
-                    loop.run_until_complete(_capture_failure(pg, item.nodeid))
+                except RuntimeError:
+                    asyncio.run(_capture_failure(pg, item.nodeid))
             except Exception as e:
                 print(f"\n⚠️  failure capture error: {e}")
 
