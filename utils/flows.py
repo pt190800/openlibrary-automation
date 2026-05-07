@@ -1,5 +1,6 @@
 import logging
 import allure
+from urllib.parse import quote_plus
 from playwright.async_api import Page
 
 from config.settings import BASE_URL
@@ -21,7 +22,7 @@ class LibraryFlows:
         self, query: str, max_year: int, limit: int = 5
     ) -> list[str]:
         search = SearchPage(self.page)
-        await search.navigate(f"{BASE_URL}/search?q={query}")
+        await search.navigate(f"{BASE_URL}/search?q={quote_plus(query)}")
         return await search.collect_urls_under_year(max_year, limit)
 
     async def _assert_session(self) -> None:
@@ -38,8 +39,6 @@ class LibraryFlows:
     async def add_books_to_reading_list(self, urls: list[str]) -> int:
         """Returns the number of books added to 'Want to Read' (excluding 'Already Read')."""
         book = BookPage(self.page)
-        await self._assert_session()
-
         want_to_read_count = 0
         for i, url in enumerate(urls):
             with allure.step(f"Book {i + 1}/{len(urls)}: {url}"):
