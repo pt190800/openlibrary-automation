@@ -124,7 +124,7 @@ class TestReadingList:
     async def test_full_flow(self, auth_page):
         flows = LibraryFlows(auth_page)
 
-        profile_name = os.getenv("TEST_PROFILE", "full")
+        profile_name = os.getenv("TEST_PROFILE", "quick")
         profile = CFG["profiles"].get(profile_name, CFG["profiles"]["full"])
         allure.dynamic.parameter("profile", profile_name)
 
