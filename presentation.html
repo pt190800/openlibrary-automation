@@ -1,0 +1,802 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>בדיקות E2E — OpenLibrary Automation</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/reveal.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/theme/black.css">
+<style>
+  :root {
+    --accent: #58a6ff;
+    --good:   #3fb950;
+    --bad:    #f85149;
+    --warn:   #d29922;
+    --bg:     #0d1117;
+    --surface:#161b22;
+    --border: #21262d;
+    --text:   #e6edf3;
+    --muted:  #8b949e;
+    --dim:    #484f58;
+  }
+
+  .reveal-viewport { background: var(--bg); }
+  /* הורדת הfont-base של reveal מ-40px ל-32px — כל ה-em values מתכווצים יחסית */
+  .reveal { font-size: 32px !important; }
+  .reveal .slides section {
+    text-align: right;
+    padding: 0 1.2em;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    box-sizing: border-box;
+  }
+
+  /* ── typography ── */
+  .reveal h1 {
+    font-size: 1.55em; font-weight: 600;
+    color: var(--text); letter-spacing: -.02em;
+    margin-bottom: .2em; line-height: 1.2;
+  }
+  .reveal h2 {
+    font-size: 1.1em; font-weight: 600;
+    color: var(--text); letter-spacing: -.01em;
+    margin-bottom: .3em;
+  }
+  .reveal p { font-size: .76em; color: var(--muted); line-height: 1.6; margin: 0; }
+  .reveal .progress  { color: var(--accent); }
+  .reveal .slide-number { color: var(--dim); background: transparent; }
+  .reveal code {
+    font-family: "SF Mono", "Fira Code", Consolas, monospace;
+    font-size: .84em;
+    background: rgba(110,118,129,.1);
+    padding: .08em .3em; border-radius: 3px;
+    color: var(--text);
+  }
+
+  /* ── section label ── */
+  .label {
+    display: block;
+    font-family: "SF Mono", Consolas, monospace;
+    font-size: .52em; font-weight: 500;
+    letter-spacing: .12em; text-transform: uppercase;
+    color: var(--accent); margin-bottom: .3em;
+  }
+
+  /* ── helpers ── */
+  .center { text-align: center; }
+  .ok   { color: var(--good); }
+  .err  { color: var(--bad); }
+  .hi   { color: var(--accent); }
+  .muted{ color: var(--muted); }
+  .dim  { color: var(--dim); }
+  .warn { color: var(--warn); }
+
+  /* ── grids ── */
+  .g2 { display: grid; grid-template-columns: 1fr 1fr; gap: .6em; }
+  .g3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: .5em; }
+
+  /* ── card ── */
+  .card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 5px; padding: .5em .7em;
+  }
+  .card-title {
+    font-size: .69em; font-weight: 600; color: var(--text);
+    margin-bottom: .2em; display: block;
+  }
+  .card-body { font-size: .65em; color: var(--muted); line-height: 1.65; }
+
+  /* ── callout ── */
+  .callout {
+    border-right: 2px solid var(--accent);
+    background: rgba(88,166,255,.04);
+    border-radius: 0 5px 5px 0;
+    padding: .35em .7em; font-size: .72em;
+    color: var(--muted); margin: .3em 0;
+  }
+  .callout-bad  { border-right-color: var(--bad);  background: rgba(248,81,73,.04); }
+  .callout-good { border-right-color: var(--good); background: rgba(63,185,80,.04); }
+  .callout-warn { border-right-color: var(--warn); background: rgba(210,153,34,.04); }
+
+  /* ── code block ── */
+  .cb {
+    background: var(--bg); border: 1px solid var(--border);
+    border-radius: 5px; padding: .45em .75em;
+    font-family: "SF Mono", "Fira Code", Consolas, monospace;
+    font-size: .62em; text-align: left; direction: ltr;
+    line-height: 1.6; color: #c9d1d9; overflow: hidden;
+  }
+  .cb-bad  { border-top: 2px solid var(--bad); }
+  .cb-good { border-top: 2px solid var(--good); }
+  .c-red   { color: #f85149; }
+  .c-green { color: #3fb950; }
+  .c-blue  { color: #79c0ff; }
+  .c-gray  { color: #6e7681; }
+
+  .diff { display: grid; grid-template-columns: 1fr 1fr; gap: .55em; }
+  .cb-label {
+    font-size: .58em; font-family: "SF Mono", Consolas, monospace;
+    letter-spacing: .08em; text-transform: uppercase;
+    margin-bottom: .18em; display: block;
+  }
+
+  /* ── flow ── */
+  .flow { display: flex; align-items: center; justify-content: center; gap: .4em; flex-wrap: wrap; }
+  .fbox {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 5px; padding: .3em .65em;
+    font-size: .67em; color: var(--text); white-space: nowrap;
+  }
+  .farr { color: var(--dim); font-size: .82em; }
+
+  /* ── layer stack ── */
+  .layer {
+    border: 1px solid var(--border); border-radius: 5px;
+    padding: .32em 1em; font-size: .68em; font-weight: 500;
+    text-align: center; margin: .15em auto; max-width: 310px;
+  }
+
+  /* ── file tree ── */
+  .tree {
+    background: var(--bg); border: 1px solid var(--border);
+    border-radius: 5px; padding: .5em .85em;
+    font-family: "SF Mono", Consolas, monospace; font-size: .61em;
+    text-align: left; direction: ltr; line-height: 1.8; color: #c9d1d9;
+  }
+
+  /* ── stats (title slide) ── */
+  .stats { display: flex; justify-content: center; gap: 2.2em; margin-top: 1.1em; }
+  .stat-num { font-size: 1.6em; font-weight: 700; line-height: 1; letter-spacing: -.03em; }
+  .stat-lbl { font-size: .55em; color: var(--muted); margin-top: .15em; letter-spacing: .04em; text-transform: uppercase; }
+
+  /* ── bug table (test plan slide) ── */
+  .bug-row {
+    display: grid; grid-template-columns: 2em 1fr 1fr;
+    gap: .5em; align-items: start;
+    padding: .35em 0; border-bottom: 1px solid var(--border);
+    font-size: .7em;
+  }
+  .bug-row:last-child { border-bottom: none; }
+  .bnum { font-family: "SF Mono", Consolas, monospace; color: var(--dim); font-size: .85em; }
+
+  /* ── lesson card ── */
+  .lesson {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 5px; padding: .5em .7em;
+  }
+  .lesson-num {
+    font-family: "SF Mono", Consolas, monospace;
+    font-size: .52em; color: var(--accent); letter-spacing: .08em;
+    display: block; margin-bottom: .18em; text-transform: uppercase;
+  }
+  .lesson-title { font-size: .72em; font-weight: 600; color: var(--text); display: block; margin-bottom: .15em; }
+  .lesson-body  { font-size: .63em; color: var(--muted); line-height: 1.65; }
+
+  /* ── perf bar ── */
+  .pbar-wrap { background: rgba(255,255,255,.04); border-radius: 3px; height: 5px; margin: .15em 0 .45em; overflow: hidden; }
+  .pbar { height: 100%; border-radius: 3px; }
+
+  /* ── agenda slide ── */
+  .agenda-item {
+    display: flex; gap: .65em; align-items: flex-start;
+    padding: .38em 0; border-bottom: 1px solid var(--border);
+  }
+  .anum {
+    font-family: "SF Mono", Consolas, monospace;
+    font-size: .6em; font-weight: 600; flex-shrink: 0;
+    width: 1.8em; padding-top: .15em; color: var(--dim);
+  }
+  .atitle {
+    display: block; font-size: .72em; font-weight: 600;
+    color: var(--text); margin-bottom: .1em;
+  }
+  .abody {
+    display: block; font-size: .62em; color: var(--muted); line-height: 1.45;
+  }
+
+  /* ── compact bug line (bugs overview slide) ── */
+  .bline {
+    display: flex; align-items: baseline; gap: .55em;
+    padding: .26em 0; border-bottom: 1px solid var(--border);
+    font-size: .68em; line-height: 1.35;
+  }
+  .bline:last-child { border-bottom: none; }
+  .bline .bnum { flex-shrink: 0; width: 1.5em; }
+  .btxt { color: var(--muted); }
+  .btxt strong { color: var(--text); font-weight: 600; }
+</style>
+</head>
+<body>
+<div class="reveal">
+<div class="slides">
+
+
+<!-- ════════════════════════════════════
+     1. TITLE
+════════════════════════════════════ -->
+<section>
+  <div style="padding-top:1.2em">
+    <span class="label">E2E Testing · OpenLibrary</span>
+    <h1>בדיקות אוטומציה<br>מאפס לפרויקט אמיתי</h1>
+    <p style="margin-top:.4em;font-size:.78em">
+      Python · Playwright · Page Object Model · Allure<br>
+      <span class="dim">ארכיטקטורה, באגים, ומה שלמדנו</span>
+    </p>
+    <div class="stats">
+      <div style="text-align:center"><div class="stat-num ok">6</div><div class="stat-lbl">טסטים</div></div>
+      <div style="text-align:center"><div class="stat-num err">9</div><div class="stat-lbl">באגים</div></div>
+      <div style="text-align:center"><div class="stat-num hi">3</div><div class="stat-lbl">שכבות</div></div>
+      <div style="text-align:center"><div class="stat-num warn">3</div><div class="stat-lbl">דוחות</div></div>
+    </div>
+  </div>
+</section>
+
+
+<!-- ════════════════════════════════════
+     2. AGENDA
+════════════════════════════════════ -->
+<section>
+  <span class="label">מה נעבור היום</span>
+  <h2>מפת הדרך</h2>
+
+  <div class="g2" style="max-width:840px;margin:.4em auto;gap:.5em">
+
+    <div>
+      <div class="agenda-item">
+        <span class="anum hi">01</span>
+        <div>
+          <span class="atitle">רקע וכלים</span>
+          <span class="abody">מה זה E2E, למה Playwright, מה היה הפרויקט</span>
+        </div>
+      </div>
+      <div class="agenda-item">
+        <span class="anum hi">02</span>
+        <div>
+          <span class="atitle">ארכיטקטורה — 3 שכבות</span>
+          <span class="abody">Tests · Flows · Pages — מה עושה כל שכבה</span>
+        </div>
+      </div>
+      <div class="agenda-item">
+        <span class="anum hi">03</span>
+        <div>
+          <span class="atitle">תוכנית הבדיקות</span>
+          <span class="abody">4 מחלקות טסט, קלט JSON, פלט דוחות</span>
+        </div>
+      </div>
+      <div class="agenda-item" style="border:none">
+        <span class="anum hi">04</span>
+        <div>
+          <span class="atitle">9 באגים</span>
+          <span class="abody">סקירה + שני דוגמאות קוד מלמדות</span>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <div class="agenda-item">
+        <span class="anum hi">05</span>
+        <div>
+          <span class="atitle">מנגנונים</span>
+          <span class="abody">Exponential Backoff, Delta Assertion, Stealth</span>
+        </div>
+      </div>
+      <div class="agenda-item">
+        <span class="anum hi">06</span>
+        <div>
+          <span class="atitle">דוחות</span>
+          <span class="abody">Allure steps · Playwright Traces · Performance JSON</span>
+        </div>
+      </div>
+      <div class="agenda-item">
+        <span class="anum hi">07</span>
+        <div>
+          <span class="atitle">מסקנות</span>
+          <span class="abody">מה לוקחים — טכנית ומתודולוגית</span>
+        </div>
+      </div>
+      <div class="agenda-item" style="border:none;opacity:.35">
+        <span class="anum">—</span>
+        <div>
+          <span class="atitle">תוצאה סופית</span>
+          <span class="abody">6 / 6 טסטים עברו · 9 באגים נפתרו</span>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+
+<!-- ════════════════════════════════════
+     3. WHAT IS E2E? (was 2)
+════════════════════════════════════ -->
+<section>
+  <span class="label">רקע</span>
+  <h2>מה זה E2E Testing?</h2>
+
+  <div class="g2" style="max-width:740px;margin:.5em auto">
+    <div class="card">
+      <span class="card-title err">Unit Test</span>
+      <span class="card-body">בודק פונקציה אחת בבידוד. מהיר — אבל לא רואה את התמונה הגדולה. משתמש ב-mock במקום דפדפן.</span>
+    </div>
+    <div class="card">
+      <span class="card-title ok">E2E Test</span>
+      <span class="card-body">מפעיל דפדפן אמיתי, מנווט כמו משתמש. אין mock. אם האתר משתנה — הטסט מתריע.</span>
+    </div>
+  </div>
+
+  <div class="flow" style="margin:.9em 0">
+    <div class="fbox">מחפש ספר</div>
+    <div class="farr">→</div>
+    <div class="fbox">מסנן לפי שנה</div>
+    <div class="farr">→</div>
+    <div class="fbox">נכנס לעמוד הספר</div>
+    <div class="farr">→</div>
+    <div class="fbox">מוסיף לרשימה</div>
+    <div class="farr">→</div>
+    <div class="fbox">מוודא שנוסף</div>
+  </div>
+
+  <div class="callout">
+    לא צריך לבדוק ידנית אחרי כל עדכון לאתר — הטסט עושה זאת אוטומטית.
+  </div>
+</section>
+
+
+<!-- ════════════════════════════════════
+     3. ARCHITECTURE
+════════════════════════════════════ -->
+<section>
+  <span class="label">ארכיטקטורה</span>
+  <h2>מבנה הפרויקט — 3 שכבות</h2>
+
+  <div class="g2" style="max-width:800px;margin:.5em auto;align-items:start">
+
+    <div style="max-width:310px">
+      <div class="layer" style="color:var(--accent);border-color:rgba(88,166,255,.35)">
+        Tests &nbsp;<span class="dim" style="font-size:.85em;font-weight:400">— מה בודקים</span>
+      </div>
+      <div style="text-align:center;color:var(--dim);font-size:.7em;margin:.12em 0">↓</div>
+      <div class="layer" style="color:var(--warn);border-color:rgba(210,153,34,.35)">
+        Flows &nbsp;<span class="dim" style="font-size:.85em;font-weight:400">— תסריטים עסקיים</span>
+      </div>
+      <div style="text-align:center;color:var(--dim);font-size:.7em;margin:.12em 0">↓</div>
+      <div class="layer" style="color:#c792ea;border-color:rgba(199,146,234,.35)">
+        Pages &nbsp;<span class="dim" style="font-size:.85em;font-weight:400">— ממשק מול הדפים</span>
+      </div>
+      <div style="text-align:center;color:var(--dim);font-size:.65em;margin:.35em 0 .15em">
+        ↓ &nbsp;<span style="font-size:.9em">Playwright (ספרייה חיצונית)</span>
+      </div>
+      <div class="callout" style="margin-top:.3em;font-size:.7em">
+        selector משתנה → רק ה-Page Object מתעדכן. הטסט לא נוגע ב-selectors.
+      </div>
+    </div>
+
+    <div>
+      <div class="tree">
+<span class="c-gray">openlibrary_automation/</span>
+├── <span style="color:var(--accent)">tests/</span>
+│   └── test_openlibrary.py
+│       <span class="c-gray"># TestSearch · TestReadingList
+│       # TestAuth · TestPerformance</span>
+│
+├── <span style="color:var(--warn)">utils/</span>
+│   └── flows.py
+│       <span class="c-gray"># LibraryFlows — orchestrator</span>
+│
+├── <span style="color:#c792ea">pages/</span>
+│   ├── base_page.py    <span class="c-gray"># navigate + backoff</span>
+│   ├── search_page.py  <span class="c-gray"># חיפוש + סינון שנה</span>
+│   ├── book_page.py    <span class="c-gray"># הוספה + session guard</span>
+│   └── reading_list_page.py
+│
+└── <span class="c-gray">config/</span>
+    ├── settings.py
+    └── test_data.json  <span class="c-gray"># ללא hardcoding</span>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+
+<!-- ════════════════════════════════════
+     4. PAGES + FLOWS
+════════════════════════════════════ -->
+<section>
+  <span class="label">שכבות Pages · Flows · Config</span>
+  <h2>מה נמצא בכל שכבה</h2>
+
+  <div class="g2" style="max-width:800px;margin:.5em auto;align-items:start">
+    <div>
+      <div class="card" style="margin-bottom:.5em">
+        <span class="card-title" style="color:#c792ea">BasePage — הבסיס לכולם</span>
+        <div class="card-body" style="line-height:1.95">
+          <code>navigate()</code> — Exponential Backoff על 429<br>
+          <code>_human_click()</code> — עכבר עם overshoot ותנועה אקראית<br>
+          <code>_delay()</code> — השהיה אנושית בין פעולות<br>
+          <code>take_screenshot()</code> — שמירת PNG
+        </div>
+      </div>
+      <div class="card" style="margin-bottom:.5em">
+        <span class="card-title hi">SearchPage</span>
+        <div class="card-body">חיפוש, ניווט בין דפים, חילוץ שנה עם regex, איסוף URLs</div>
+      </div>
+      <div class="card">
+        <span class="card-title ok">BookPage</span>
+        <div class="card-body">session guard, זיהוי CAPTCHA, פתיחת dropdown, הוספה לרשימה</div>
+      </div>
+    </div>
+
+    <div>
+      <div class="card" style="margin-bottom:.5em">
+        <span class="card-title warn">LibraryFlows — ה-Orchestrator</span>
+        <div class="card-body" style="line-height:1.95">
+          מקשר בין Tests לPages. הטסט קורא ל-flow, ה-flow מחלק לPage Objects.<br>
+          <code>search_books_by_title_under_year()</code><br>
+          <code>add_books_to_reading_list()</code><br>
+          <code>get_reading_list_count()</code>
+        </div>
+      </div>
+      <div class="card">
+        <span class="card-title muted">test_data.json — ללא hardcoding</span>
+        <div class="card-body" style="line-height:1.95">
+          <code>"searches"</code> — queries + max_year + limit<br>
+          <code>"performance_thresholds"</code> — ספי זמן<br>
+          <code>"profiles"</code> — quick (3 ספרים) / full (5)<br>
+          <code>TEST_PROFILE=quick</code> — ברירת מחדל
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<!-- ════════════════════════════════════
+     5. TEST PLAN
+════════════════════════════════════ -->
+<section>
+  <span class="label">תוכנית הבדיקות</span>
+  <h2>4 מחלקות טסט</h2>
+
+  <div style="max-width:720px;margin:.5em auto">
+    <div class="bug-row" style="grid-template-columns:2em 1fr 1fr">
+      <span class="bnum hi" style="padding-top:.1em">01</span>
+      <div>
+        <span style="font-size:.74em;font-weight:600;color:var(--text)">TestSearch</span>
+        <div class="card-body" style="margin-top:.1em">חיפוש, סינון שנה, parametrize, pagination</div>
+      </div>
+      <div class="card-body" style="font-size:.66em;padding-top:.1em">
+        test_search_returns_list<br>test_search_no_results<br>test_parametrized_search
+      </div>
+    </div>
+    <div class="bug-row" style="grid-template-columns:2em 1fr 1fr">
+      <span class="bnum ok" style="padding-top:.1em">02</span>
+      <div>
+        <span style="font-size:.74em;font-weight:600;color:var(--text)">TestReadingList</span>
+        <div class="card-body" style="margin-top:.1em">flow שלם: חיפוש → הוספה → אימות</div>
+      </div>
+      <div class="card-body" style="font-size:.66em;padding-top:.1em">
+        test_full_flow<br>דורש <code>auth_page</code> fixture<br>Delta Assertion
+      </div>
+    </div>
+    <div class="bug-row" style="grid-template-columns:2em 1fr 1fr">
+      <span class="bnum warn" style="padding-top:.1em">03</span>
+      <div>
+        <span style="font-size:.74em;font-weight:600;color:var(--text)">TestPerformance</span>
+        <div class="card-body" style="margin-top:.1em">מדידת זמני טעינה מול ספים</div>
+      </div>
+      <div class="card-body" style="font-size:.66em;padding-top:.1em">
+        test_performance<br>performance_report.json<br>מדווח כ-warning, לא failure
+      </div>
+    </div>
+    <div class="bug-row" style="grid-template-columns:2em 1fr 1fr">
+      <span class="bnum" style="color:#c792ea;padding-top:.1em">04</span>
+      <div>
+        <span style="font-size:.74em;font-weight:600;color:var(--text)">TestAuth</span>
+        <div class="card-body" style="margin-top:.1em">לוגין מלא עם זיהוי CAPTCHA</div>
+      </div>
+      <div class="card-body" style="font-size:.66em;padding-top:.1em">
+        test_login<br>skipif ללא credentials<br>OL_USERNAME / OL_PASSWORD
+      </div>
+    </div>
+  </div>
+
+  <div class="g2" style="margin-top:.7em;max-width:720px;margin-left:auto;margin-right:auto">
+    <div class="callout">קלט: test_data.json · session.json · TEST_PROFILE env var</div>
+    <div class="callout">פלט: Allure Report · screenshots/ · performance_report.json · Traces</div>
+  </div>
+</section>
+
+
+<!-- ════════════════════════════════════
+     6. ALL 9 BUGS — OVERVIEW
+════════════════════════════════════ -->
+<section>
+  <span class="label">באגים</span>
+  <h2>9 הבאגים שנתקלנו</h2>
+
+  <div class="g2" style="max-width:840px;margin:.35em auto;gap:.4em">
+
+    <div>
+      <div class="bline"><span class="bnum err">01</span><span class="btxt"><strong>Event Loop Mismatch</strong> — scope="session" קרס בטסט השני</span></div>
+      <div class="bline"><span class="bnum err">02</span><span class="btxt"><strong>Selector מת</strong> — span.bookEditions הוסר, list ריקה בשקט</span></div>
+      <div class="bline"><span class="bnum err">03</span><span class="btxt"><strong>כפתורים שינו class</strong> — .want-to-read לא קיים, 0 נוספו</span></div>
+      <div class="bline"><span class="bnum err">04</span><span class="btxt"><strong>הנחה שגויה</strong> — max_year=1800 החזיר 5 ספרים (1484!)</span></div>
+      <div class="bline" style="border:none"><span class="bnum err">05</span><span class="btxt"><strong>כפתור hidden</strong> — קיים ב-DOM, invisible, click נכשל</span></div>
+    </div>
+
+    <div>
+      <div class="bline"><span class="bnum err">06</span><span class="btxt"><strong>Session פג</strong> — redirect ל-login, שגיאה מטעה</span></div>
+      <div class="bline"><span class="bnum err">07</span><span class="btxt"><strong>Selector רשימה שגוי</strong> — li.listbook-item לא קיים, count=0</span></div>
+      <div class="bline"><span class="bnum warn">08</span><span class="btxt"><strong>URL לא מקודד</strong> — "Lord of the Rings" שובר את ה-URL</span></div>
+      <div class="bline" style="border:none"><span class="bnum warn">09</span><span class="btxt"><strong>קריאה כפולה ל-session</strong> — page load מיותר, 429 מהר יותר</span></div>
+    </div>
+
+  </div>
+
+  <div class="callout callout-bad" style="max-width:840px;margin:.6em auto">
+    כולם נמצאו בריצה אמיתית — לא בקוד. E2E חושף מה שקוד review מפספס.
+  </div>
+</section>
+
+
+<!-- ════════════════════════════════════
+     7. BUG EXAMPLES — SILENT + EVENT LOOP
+════════════════════════════════════ -->
+<section>
+  <span class="label">דוגמאות — באגים 01 + 02</span>
+  <h2>שני הבאגים הכי מלמדים</h2>
+
+  <div class="diff" style="max-width:800px;margin:.5em auto">
+    <div>
+      <span class="cb-label err">01 — Event Loop: scope שגוי</span>
+      <div class="cb cb-bad">
+<span class="c-gray"># browser scope="session" = loop אחד לכולם</span>
+@pytest_asyncio.fixture(<span class="c-red">scope="session"</span>)
+async def browser():
+    yield await p.chromium.launch()
+
+async def page(browser):
+    await browser.new_page()
+    <span class="c-gray"># ❌ טסט 2 = event loop חדש → קריסה</span>
+      </div>
+      <div class="cb cb-good" style="margin-top:.35em">
+<span class="c-gray"># כל טסט = playwright עצמאי</span>
+@pytest_asyncio.fixture  <span class="c-gray"># scope="function"</span>
+async def page():
+    async with async_playwright() as p:
+        browser = await p.chromium.launch()
+        pg = await browser.new_page()
+        yield pg
+        await browser.close()  <span class="c-gray"># ✓ ניקוי מלא</span>
+      </div>
+    </div>
+
+    <div>
+      <span class="cb-label err">02 — Selector מת: כישלון שקט</span>
+      <div class="cb cb-bad">
+BOOK_YEAR = <span class="c-red">"span.bookEditions"</span>
+<span class="c-gray"># האלמנט הוסר מה-HTML</span>
+
+year_el = await item.query_selector(BOOK_YEAR)
+<span class="c-gray"># → None, בלי שגיאה
+# → דילוג על כל התוצאות
+# → test SKIPPED (לא FAILED!)</span>
+      </div>
+      <div class="cb cb-good" style="margin-top:.35em">
+BOOK_YEAR = <span class="c-green">"span.resultDetails > span:first-child"</span>
+<span class="c-gray"># "First published in 1965"</span>
+
+matches = re.findall(
+    r'\b(1[0-9]{3}|20[012][0-9])\b', text
+)
+year = int(matches[0]) if matches else None
+<span class="c-gray"># ✓ regex עמיד לשינויי format</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="callout callout-bad" style="margin-top:.5em">
+    <strong>כישלון שקט = הסכנה הכי גדולה.</strong> טסט שעובר אבל בודק שום דבר גרוע יותר מטסט שנכשל.
+  </div>
+</section>
+
+
+<!-- ════════════════════════════════════
+     8. MECHANISMS: BACKOFF + DELTA
+════════════════════════════════════ -->
+<section>
+  <span class="label">מנגנונים</span>
+  <h2>Exponential Backoff + Delta Assertion</h2>
+
+  <div class="diff" style="max-width:800px;margin:.5em auto">
+    <div>
+      <span class="cb-label">Exponential Backoff — vs HTTP 429</span>
+      <div class="cb" style="border:1px solid var(--border)">
+_BACKOFF_BASE = 5  <span class="c-gray"># 5→10→20→40s</span>
+
+for attempt in range(4):
+    resp = await page.goto(url)
+    if resp.status != 429: return  <span class="c-gray"># ✓</span>
+
+    wait = _BACKOFF_BASE * (2**attempt)
+    wait += random.uniform(-2, 2)  <span class="c-gray"># jitter</span>
+    await asyncio.sleep(wait)
+      </div>
+      <div class="callout" style="margin-top:.35em;font-size:.7em">
+        <strong>Jitter</strong> — רעש ±2s. מונע מריצות מקבילות לפגוע בשרת בדיוק אותו זמן.
+      </div>
+      <div class="callout" style="margin-top:.3em;font-size:.7em">
+        + תנועת עכבר אנושית · + delays אקראיים · + הסרת webdriver flag
+      </div>
+    </div>
+
+    <div>
+      <span class="cb-label">Delta Assertion — עמיד לריצות חוזרות</span>
+      <div class="cb cb-bad">
+<span class="c-gray"># ❌ ריצה שנייה שוברת:</span>
+assert count == 5  <span class="c-gray"># → 10 בריצה שנייה</span>
+      </div>
+      <div class="cb cb-good" style="margin-top:.35em">
+<span class="c-gray"># ✓ מודד שינוי, לא ערך מוחלט</span>
+before = await flows.get_reading_list_count()
+added  = await flows.add_books_to_reading_list(urls)
+after  = await flows.get_reading_list_count()
+assert after - before == added
+      </div>
+      <div class="callout callout-good" style="margin-top:.35em;font-size:.7em">
+        <strong>למה לא לנקות?</strong> מחיקה = פעולה נוספת שיכולה לגרום ל-429. Delta פותרת בלי סיכון.
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<!-- ════════════════════════════════════
+     9. REPORTS
+════════════════════════════════════ -->
+<section>
+  <span class="label">דוחות</span>
+  <h2>מה מקבלים אחרי ריצה</h2>
+
+  <div class="g2" style="max-width:800px;margin:.5em auto;align-items:start">
+    <div>
+      <div class="card" style="margin-bottom:.5em">
+        <span class="card-title ok">Allure Report</span>
+        <div class="cb" style="margin-top:.35em;font-size:.62em;line-height:2">
+<span class="c-green">✓</span> Search 'Dune' — max year 1980, limit 3
+  <span class="c-green">✓</span> Book 1/3: openlibrary.org/works/...
+  <span class="c-green">✓</span> Book 2/3: openlibrary.org/works/...
+<span class="c-green">✓</span> Get reading list count → 7
+<span class="c-green">✓</span> Add books to reading list
+<span class="c-green">✓</span> Assert reading list count = 9
+        </div>
+      </div>
+      <div class="card">
+        <span class="card-title hi">Playwright Traces</span>
+        <span class="card-body">video מלא · network requests · DOM snapshot לכל פעולה. ניתן לנגן בחזרה ב-<code>trace.playwright.dev</code>.</span>
+      </div>
+    </div>
+
+    <div>
+      <div class="card" style="margin-bottom:.5em">
+        <span class="card-title warn">Performance Report</span>
+        <div style="margin-top:.35em">
+          <div style="display:flex;justify-content:space-between;font-size:.63em;margin-bottom:.12em">
+            <span class="muted">Search Page</span><span class="err">18,724ms / סף 3,000ms</span>
+          </div>
+          <div class="pbar-wrap"><div class="pbar" style="width:100%;background:var(--bad)"></div></div>
+          <div style="display:flex;justify-content:space-between;font-size:.63em;margin-bottom:.12em">
+            <span class="muted">Book Page</span><span class="err">3,198ms / סף 2,500ms</span>
+          </div>
+          <div class="pbar-wrap"><div class="pbar" style="width:27%;background:var(--bad)"></div></div>
+          <div style="display:flex;justify-content:space-between;font-size:.63em;margin-bottom:.12em">
+            <span class="muted">Reading List</span><span class="err">3,710ms / סף 2,000ms</span>
+          </div>
+          <div class="pbar-wrap"><div class="pbar" style="width:32%;background:var(--bad)"></div></div>
+          <p style="font-size:.63em;margin-top:.35em">שרת חיצוני — אין שליטה. הטסטים עצמם עברו. מדווח כ-warning.</p>
+        </div>
+      </div>
+      <div class="card">
+        <span class="card-title muted">Screenshots</span>
+        <span class="card-body">לכל ספר שנוסף · לרשימה באימות · על כל כישלון — הכל מצורף ל-Allure.</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<!-- ════════════════════════════════════
+     10. LESSONS
+════════════════════════════════════ -->
+<section>
+  <span class="label">מסקנות</span>
+  <h2>מה לוקחים מהפרויקט</h2>
+
+  <div class="g2" style="max-width:800px;margin:.4em auto">
+    <div class="lesson">
+      <span class="lesson-num">כישלון שקט</span>
+      <span class="lesson-title">None → exception, לא המשך</span>
+      <span class="lesson-body">selector שמחזיר None בשקט גרוע יותר מקריסה. הטסט "יעבור" בלי לבדוק כלום.</span>
+    </div>
+    <div class="lesson">
+      <span class="lesson-num">Selectors</span>
+      <span class="lesson-title">טקסט יציב יותר מ-class</span>
+      <span class="lesson-body"><code>:has-text()</code> עמיד לשינויי CSS. Class names משתנים ברדיזיין — טקסט פחות. DevTools לפני קוד.</span>
+    </div>
+    <div class="lesson">
+      <span class="lesson-num">POM</span>
+      <span class="lesson-title">הפרדת אחריות — השקעה שחוזרת</span>
+      <span class="lesson-body">כשהאתר שינה כפתורים — תיקנו 3 שורות ב-Page Object. הטסטים לא ידעו שמשהו השתנה.</span>
+    </div>
+    <div class="lesson">
+      <span class="lesson-num">Real-world</span>
+      <span class="lesson-title">אל תניח — תבדוק</span>
+      <span class="lesson-body">"בטח אין ספרים מ-1800" — יש, מ-1484. הריצה הראשונה תשבור הנחות — בדיוק בשביל זה עושים E2E.</span>
+    </div>
+  </div>
+</section>
+
+
+<!-- ════════════════════════════════════
+     12. FINAL
+════════════════════════════════════ -->
+<section>
+  <div style="padding-top:.8em;max-width:740px;margin:0 auto">
+    <span class="label">סיכום</span>
+    <h1 style="margin-bottom:.5em"><span class="ok">6 / 6</span> טסטים עברו</h1>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:.6em;margin:.6em 0">
+      <div class="card" style="text-align:center">
+        <div style="font-size:1.4em;font-weight:700;color:var(--bad);letter-spacing:-.02em">9</div>
+        <div style="font-size:.6em;color:var(--muted);margin-top:.15em">באגים שנפתרו</div>
+      </div>
+      <div class="card" style="text-align:center">
+        <div style="font-size:1.4em;font-weight:700;color:var(--accent);letter-spacing:-.02em">3</div>
+        <div style="font-size:.6em;color:var(--muted);margin-top:.15em">שכבות קוד</div>
+      </div>
+      <div class="card" style="text-align:center">
+        <div style="font-size:1.4em;font-weight:700;color:var(--warn);letter-spacing:-.02em">3</div>
+        <div style="font-size:.6em;color:var(--muted);margin-top:.15em">סוגי דוחות</div>
+      </div>
+    </div>
+
+    <div class="callout callout-good" style="margin:.5em 0">
+      הריצה הראשונה שברה הכל — ובדיוק בשביל זה עושים E2E Testing.
+    </div>
+    <div class="callout" style="margin:.5em 0">
+      POM · Exponential Backoff · Delta Assertion · Session Guards · Stealth
+    </div>
+
+    <div class="cb" style="margin-top:.6em;text-align:center;border-color:rgba(63,185,80,.2)">
+      <span class="c-gray">$</span> pytest --alluredir=allure-results
+      &nbsp;&nbsp;<span class="c-green">6 passed, 0 failed</span>
+    </div>
+  </div>
+</section>
+
+
+</div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/reveal.js"></script>
+<script>
+Reveal.initialize({
+  hash: true,
+  slideNumber: 'c/t',
+  transition: 'slide',
+  transitionSpeed: 'fast',
+  backgroundTransition: 'fade',
+  progress: true,
+  controls: true,
+  center: true,
+  rtl: true,
+  width: 1100,
+  height: 760,
+  margin: 0.04,
+  minScale: 0.1,
+  maxScale: 2.0,
+});
+</script>
+</body>
+</html>
