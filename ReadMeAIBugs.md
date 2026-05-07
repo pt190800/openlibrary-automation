@@ -240,3 +240,59 @@ AssertionError: Expected 3 books, got 0
 ```python
 BOOK_ITEMS = "li.searchResultItem"
 ```
+
+---
+
+## באג 8 — query לחיפוש לא מקודד ב-URL (נמצא בניתוח קוד)
+
+**קוד בעייתי:**
+```python
+await search.navigate(f"{BASE_URL}/search?q={query}")
+```
+
+**הסבר:** כשה-query מכיל רווחים או תווים מיוחדים (למשל `"Lord of the Rings"`), הם נכנסים כמות שהם ל-URL. דפדפן יכול להמיר רווח ל-`%20` אוטומטית, אבל תווים כמו `&`, `+`, `#` ישברו את ה-URL לחלוטין. בפועל הטסט הפרמטריזאטי `test_parametrized_search[data1]` רץ עם query `"Lord of the Rings"` — שבירה אפשרית.
+
+**שגיאה אפשרית:**
+```
+# URL שנוצר:
+https://openlibrary.org/search?q=Lord of the Rings
+# במקום:
+https://openlibrary.org/search?q=Lord+of+the+Rings
+```
+
+**תיקון:**
+```python
+from urllib.parse import quote_plus
+await search.navigate(f"{BASE_URL}/search?q={quote_plus(query)}")
+```
+
+---
+
+## באג 9 — קריאה כפולה ל-`_assert_session()` מגדילה rate limiting (נמצא בריצה אמיתית)
+
+**קוד בעייתי:**
+```python
+async def get_reading_list_count(self) -> int:
+    await self._assert_session()      # ← טוען /account/books/want-to-read
+    rl = ReadingListPage(self.page)
+    return await rl.get_book_count()
+
+async def add_books_to_reading_list(self, urls: list[str]) -> int:
+    await self._assert_session()      # ← טוען שוב — מיותר לחלוטין
+    ...
+```
+
+**הסבר:** בטסט `test_full_flow`, `get_reading_list_count` תמיד מוקרא לפני `add_books_to_reading_list`. כלומר הסשן כבר אומת ועמוד הרשימה כבר נטען. הקריאה השנייה ל-`_assert_session` טענה את העמוד שוב — בזבוז שגרם לחריגת HTTP 429 מהירה יותר מהאתר. בריצה אמיתית זה גרם לכישלון ב-Dune Messiah (הספר השני) עם:
+
+```json
+{"status": 429, "message": "Too Many Requests."}
+```
+
+**תיקון:** הסרת `_assert_session()` מ-`add_books_to_reading_list` — הבדיקה ב-`BookPage._assert_authenticated()` מספיקה:
+```python
+async def add_books_to_reading_list(self, urls: list[str]) -> int:
+    book = BookPage(self.page)
+    # אין _assert_session — הסשן אומת כבר ב-get_reading_list_count
+    want_to_read_count = 0
+    ...
+```

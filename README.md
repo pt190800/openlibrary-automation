@@ -153,7 +153,7 @@ Orchestrator class — uses all three page objects to implement the three core E
 |--------|-------------|-------------|
 | `search_books_by_title_under_year(query, max_year, limit)` | ✓ | Creates `SearchPage`, navigates to `/search?q={query}`, calls `collect_urls_under_year` |
 | `_assert_session()` | — | Navigates to want-to-read page; raises if redirected to login |
-| `add_books_to_reading_list(urls)` | ✓ | `_assert_session()` → per URL: navigate, `add_to_reading_list()`, screenshot, Allure attach; returns count of "Want to Read" adds only |
+| `add_books_to_reading_list(urls)` | ✓ | Per URL: navigate, `add_to_reading_list()`, screenshot, Allure attach; returns count of "Want to Read" adds only |
 | `get_reading_list_count()` | ✓ | `_assert_session()` → `ReadingListPage.get_book_count()` |
 | `assert_reading_list_count(expected)` | ✓ | Opens list, counts, takes screenshot, asserts `actual == expected` |
 
@@ -426,7 +426,7 @@ All test inputs live in `config/test_data.json` — change without touching code
 }
 ```
 
-Profile selected via `TEST_PROFILE=quick` / `TEST_PROFILE=full` (default: `full`).
+Profile selected via `TEST_PROFILE=quick` / `TEST_PROFILE=full` (default: `quick`).
 
 ---
 

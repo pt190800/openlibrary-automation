@@ -14,15 +14,7 @@
 
 | קובץ | מה זה |
 |---|---|
-| `https___openlibrary_org_works_OL893415W_Dune_*.png` | Dune — נוסף לרשימה |
-| `https___openlibrary_org_works_OL893444W_The_Great_Dune_Trilogy_*.png` | The Great Dune Trilogy — נוסף |
-| `https___openlibrary_org_works_OL893516W_Children_of_Dune_*.png` | Children of Dune — נוסף |
-| `https___openlibrary_org_works_OL893526W_Dune_Messiah_*.png` | Dune Messiah — נוסף |
-| `https___openlibrary_org_works_OL264729W_Go_Ask_Alice_*.png` | Go Ask Alice — נוסף |
-| `https___openlibrary_org_works_OL274574W_Cronica_*.png` | Crónica de una muerte — נוסף |
-| `https___openlibrary_org_works_OL472165W_Peril_*.png` | Peril at End House — נוסף |
-| `https___openlibrary_org_works_OL1105384W_Memoirs_*.png` | Memoirs of a Revolutionist — נוסף |
-| `FAIL_*.png` | צילומי כישלון (ריצות קודמות) |
+| `https___openlibrary_org_works_OL893415W_Dune_*.png` | Dune — נוסף לרשימת הקריאה |
 
 ## תוצאות ביצועים
 
