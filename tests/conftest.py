@@ -177,12 +177,23 @@ async def auth_page(request):
     async with async_playwright() as p:
         if session_file.exists():
             browser, ctx = await _new_stealth_context(p, storage_state=str(session_file))
-            print("\n✅  session.json נטען — מדלג על login")
+            await ctx.tracing.start(screenshots=True, snapshots=True, sources=True)
+            pg = await ctx.new_page()
+            await pg.goto(f"{BASE_URL}/account", wait_until="domcontentloaded")
+            await pg.wait_for_timeout(1500)
+            if "/account/login" in pg.url:
+                await pg.screenshot(path=str(SCREENSHOTS_DIR / "session_expired.png"))
+                await ctx.tracing.stop(path=str(TRACES_DIR / "session_expired.zip"))
+                await browser.close()
+                raise RuntimeError(
+                    "session.json פג תוקף — האתר הפנה ל-/account/login.\n"
+                    "הרץ: python3 save_session.py כדי לחדש את הסשן."
+                )
+            print("\n✅  session.json תקין — הסשן פעיל")
         else:
             browser, ctx = await _new_stealth_context(p)
-
-        await ctx.tracing.start(screenshots=True, snapshots=True, sources=True)
-        pg = await ctx.new_page()
+            await ctx.tracing.start(screenshots=True, snapshots=True, sources=True)
+            pg = await ctx.new_page()
 
         if not session_file.exists():
             if not username or not password:

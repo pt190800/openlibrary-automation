@@ -201,7 +201,7 @@ Standalone utility for page load measurement.
 Stealth Chromium context (no session), tracing enabled. Registers a console error listener before the test runs. On teardown: if the test failed, captures full-page screenshot + URL + title + collected console errors + HTML snapshot and attaches all to Allure. Saves trace zip and closes browser.
 
 #### `auth_page` fixture
-Tries `session.json` first; if absent, logs in with `.env` credentials including `verify_human` page handling. Same stealth context, console capture, failure capture, and trace lifecycle as `page`.
+Tries `session.json` first; if absent, logs in with `.env` credentials including `verify_human` page handling. When `session.json` exists, navigates to `/account` before the test begins — if redirected to `/account/login` the session has expired and a `RuntimeError` is raised immediately with instructions to re-run `save_session.py`. Same stealth context, console capture, failure capture, and trace lifecycle as `page`.
 
 #### Stealth browser config
 
