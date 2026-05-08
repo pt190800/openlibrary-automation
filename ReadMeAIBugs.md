@@ -313,6 +313,7 @@ async def _capture_failure(page, node_id: str):
 **שגיאה:** ה-"Console errors" בAllure תמיד ריק, גם כשהיו שגיאות JS בדף.
 
 **תיקון:** רישום ה-listener בfixture לפני `yield`, והעברתו ל-`_capture_failure` כפרמטר:
+
 ```python
 @pytest_asyncio.fixture
 async def page(request):
@@ -328,4 +329,32 @@ async def page(request):
         await ctx.tracing.stop(path=trace_path)
     finally:
         await browser.close()
+```
+
+---
+
+## באג 11 — `except Exception: break` בולע שגיאות רשת בספירת ספרים (נמצא בניתוח קוד)
+
+**קוד בעייתי:**
+```python
+async def get_book_count(self) -> int:
+    for _ in range(_MAX_PAGES):
+        try:
+            await self.page.wait_for_selector(self.BOOK_ITEMS, timeout=15000)
+        except Exception:
+            break  # ← עוצר גם על 429, network error, crash
+```
+
+**הסבר:** `except Exception` תופס הכל — כולל שגיאות רשת ו-429. אם OpenLibrary מחזיר 429 בדף 3 מתוך 10, הפונקציה מחזירה `total=40` במקום 100 — בלי שגיאה, בלי התראה. הטסט מאמת count שגוי ועובר ב-green.
+
+**שגיאה:** אין שגיאה גלויה — הטסט עובר עם ספירה שגויה.
+
+**תיקון:** לתפוס רק `PlaywrightTimeoutError` (selector לא נמצא = סוף הרשימה), ולתת לשאר לעלות:
+```python
+from playwright.async_api import TimeoutError as PlaywrightTimeoutError
+
+try:
+    await self.page.wait_for_selector(self.BOOK_ITEMS, timeout=15000)
+except PlaywrightTimeoutError:
+    break  # אין ספרים בדף — סוף הרשימה
 ```

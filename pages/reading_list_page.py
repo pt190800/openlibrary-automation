@@ -1,3 +1,5 @@
+from playwright.async_api import TimeoutError as PlaywrightTimeoutError
+
 from .base_page import BasePage
 from config.settings import BASE_URL
 
@@ -18,8 +20,8 @@ class ReadingListPage(BasePage):
         for _ in range(_MAX_PAGES):
             try:
                 await self.page.wait_for_selector(self.BOOK_ITEMS, timeout=15000)
-            except Exception:
-                break
+            except PlaywrightTimeoutError:
+                break  # אין ספרים בדף — סוף הרשימה
             items = await self.page.query_selector_all(self.BOOK_ITEMS)
             total += len(items)
             btn = await self.page.query_selector(self.NEXT_PAGE)
