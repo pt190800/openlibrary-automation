@@ -1,5 +1,6 @@
 import os
 import re
+import time
 import asyncio
 import random
 import pytest
@@ -50,7 +51,7 @@ async def _new_stealth_context(p, storage_state=None):
 
 # ── full failure reflection ──────────────────────────────────────────────────
 
-async def _capture_failure(page, node_id: str):
+async def _capture_failure(page, node_id: str, console_errors: list[str]):
     """מצלם screenshot, שולף URL + title + שגיאות console ומדפיס הכל."""
     safe = re.sub(r"[^a-zA-Z0-9_-]", "_", node_id)[:120]
     sep = "=" * 60
@@ -76,11 +77,6 @@ async def _capture_failure(page, node_id: str):
         current_url   = "N/A"
         current_title = "N/A"
 
-    # ── console errors ──
-    console_errors: list[str] = []
-    page.on("console", lambda msg: console_errors.append(f"[{msg.type}] {msg.text}")
-            if msg.type in ("error", "warning") else None)
-
     # ── HTML snapshot ──
     try:
         html = await page.content()
@@ -90,7 +86,7 @@ async def _capture_failure(page, node_id: str):
             attachment_type=allure.attachment_type.HTML,
         )
     except Exception:
-        html = ""
+        pass
 
     # ── הדפסה לטרמינל ──
     print(f"\n{sep}")
@@ -105,37 +101,32 @@ async def _capture_failure(page, node_id: str):
             print(f"     {err}")
     print(sep)
 
-    # ── attach URL + title ל-Allure ──
+    # ── attach URL + title + console ל-Allure ──
     allure.attach(
         f"URL: {current_url}\nTitle: {current_title}",
         name="Page info בזמן הכישלון",
         attachment_type=allure.attachment_type.TEXT,
     )
+    if console_errors:
+        allure.attach(
+            "\n".join(console_errors),
+            name="Console errors",
+            attachment_type=allure.attachment_type.TEXT,
+        )
 
 
 def pytest_runtest_setup(item):
     """השהייה לפני כל טסט כדי לא להציף את השרת בבקשות — לא רץ ב-TestPerformance."""
     if "TestPerformance" not in item.nodeid:
-        import time
         time.sleep(random.uniform(8, 14))
 
 
 @pytest.hookimpl(tryfirst=True, hookwrapper=True)
 def pytest_runtest_makereport(item, call):
+    """שומר את תוצאת כל שלב על ה-item — ה-fixtures קוראים את rep_call ב-teardown."""
     outcome = yield
     rep = outcome.get_result()
-
-    if rep.when == "call" and rep.failed:
-        pg = item.funcargs.get("page") or item.funcargs.get("auth_page")
-        if pg:
-            try:
-                try:
-                    loop = asyncio.get_running_loop()
-                    loop.create_task(_capture_failure(pg, item.nodeid))
-                except RuntimeError:
-                    asyncio.run(_capture_failure(pg, item.nodeid))
-            except Exception as e:
-                print(f"\n⚠️  failure capture error: {e}")
+    setattr(item, f"rep_{rep.when}", rep)
 
 
 # ── fixtures ─────────────────────────────────────────────────────────────────
@@ -146,11 +137,22 @@ async def page(request):
         browser, ctx = await _new_stealth_context(p)
         await ctx.tracing.start(screenshots=True, snapshots=True, sources=True)
         pg = await ctx.new_page()
+
+        console_errors: list[str] = []
+        pg.on("console", lambda msg: console_errors.append(f"[{msg.type}] {msg.text}")
+              if msg.type in ("error", "warning") else None)
+
         yield pg
+
         safe = re.sub(r"[^a-zA-Z0-9_-]", "_", request.node.nodeid)[:100]
         trace_path = str(TRACES_DIR / f"{safe}.zip")
-        await ctx.tracing.stop(path=trace_path)
-        await browser.close()
+        rep = getattr(request.node, "rep_call", None)
+        if rep and rep.failed:
+            await _capture_failure(pg, request.node.nodeid, console_errors)
+        try:
+            await ctx.tracing.stop(path=trace_path)
+        finally:
+            await browser.close()
 
 
 @pytest_asyncio.fixture
@@ -251,8 +253,18 @@ async def auth_page(request):
                         )
                     await pg.wait_for_load_state("networkidle")
 
+        console_errors: list[str] = []
+        pg.on("console", lambda msg: console_errors.append(f"[{msg.type}] {msg.text}")
+              if msg.type in ("error", "warning") else None)
+
         yield pg
+
         safe = re.sub(r"[^a-zA-Z0-9_-]", "_", request.node.nodeid)[:100]
         trace_path = str(TRACES_DIR / f"{safe}.zip")
-        await ctx.tracing.stop(path=trace_path)
-        await browser.close()
+        rep = getattr(request.node, "rep_call", None)
+        if rep and rep.failed:
+            await _capture_failure(pg, request.node.nodeid, console_errors)
+        try:
+            await ctx.tracing.stop(path=trace_path)
+        finally:
+            await browser.close()
