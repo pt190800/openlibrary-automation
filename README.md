@@ -472,3 +472,32 @@ Profile selected via `TEST_PROFILE=quick` / `TEST_PROFILE=full` (default: `quick
 - **Reading list cleanup** — Tests do not delete added books. Repeated runs use delta-based assertion (before/after count).
 - **Selectors** — CSS classes on the site may change with OpenLibrary updates.
 - **Headless mode** — Tests run headless (no browser window). This may increase CAPTCHA frequency on OpenLibrary.
+
+---
+
+## Future Improvements
+
+### Type safety
+- Replace `add_to_reading_list()` return type `str` with `StrEnum` (`AddResult.WANT_TO_READ`, `AddResult.NOT_ADDED`, etc.) — eliminates silent typo bugs in callers.
+- Add `TypedDict` for `CFG` so config key access is validated at type-check time.
+
+### Performance testing
+- Enforce thresholds as hard assertions instead of warnings-only — currently `test_performance` passes even if all pages are 10× over threshold.
+- Save a timestamped `performance_reports/YYYY-MM-DDTHH:MM.json` per run instead of overwriting — enables trend detection across CI runs.
+
+### Selector resilience
+- Add a daily health-check job that hits OpenLibrary and verifies all selectors still resolve — catches site changes before they break the full suite.
+- Add `# verified: YYYY-MM` comment on each selector constant so drift age is visible at a glance.
+
+### Code structure
+- Split `conftest.py` into `_stealth.py` (browser setup) and `_capture.py` (failure capture) — the current 260-line file has three distinct responsibilities.
+- Deduplicate the shared browser/trace lifecycle between `page` and `auth_page` fixtures into a single inner helper.
+
+### Test parallelism
+- Add `pytest-xdist` for parallel test execution across workers — the existing random pre-test delays already prevent per-worker bursts, so this is low-risk.
+
+### Anti-detection
+- Replace the manual `navigator.webdriver` patches with [`playwright-stealth`](https://pypi.org/project/playwright-stealth/) which covers ~20 fingerprint vectors (WebGL, AudioContext, canvas, etc.) beyond what the current init script handles.
+
+### Contract testing
+- Add a lightweight contract test against OpenLibrary's JSON API (`/search.json`, `/works/{id}.json`) — faster than E2E and catches API schema changes before selectors break.
