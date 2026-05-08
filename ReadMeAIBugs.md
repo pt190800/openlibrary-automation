@@ -296,3 +296,36 @@ async def add_books_to_reading_list(self, urls: list[str]) -> int:
     want_to_read_count = 0
     ...
 ```
+
+---
+
+## באג 10 — console listener נרשם אחרי הכישלון (נמצא בניתוח קוד)
+
+**קוד בעייתי:**
+```python
+async def _capture_failure(page, node_id: str):
+    console_errors: list[str] = []
+    page.on("console", lambda msg: ...)  # ← נרשם אחרי שהטסט כבר נכשל
+```
+
+**הסבר:** `_capture_failure` נקראה מה-hook `pytest_runtest_makereport` לאחר כישלון. בשלב זה כל ה-console events (JS errors, network warnings) שהתרחשו במהלך הטסט כבר עברו — הlistener החדש לא קולט כלום. בנוסף, `loop.create_task()` יצר את ה-coroutine ללא `await`, כך שהdפדפן עלול להיסגר לפני שה-screenshot נלקח.
+
+**שגיאה:** ה-"Console errors" בAllure תמיד ריק, גם כשהיו שגיאות JS בדף.
+
+**תיקון:** רישום ה-listener בfixture לפני `yield`, והעברתו ל-`_capture_failure` כפרמטר:
+```python
+@pytest_asyncio.fixture
+async def page(request):
+    ...
+    console_errors: list[str] = []
+    pg.on("console", lambda msg: console_errors.append(...)
+          if msg.type in ("error", "warning") else None)
+    yield pg
+    rep = getattr(request.node, "rep_call", None)
+    if rep and rep.failed:
+        await _capture_failure(pg, request.node.nodeid, console_errors)
+    try:
+        await ctx.tracing.stop(path=trace_path)
+    finally:
+        await browser.close()
+```
