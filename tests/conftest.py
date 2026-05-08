@@ -38,6 +38,9 @@ STEALTH_LAUNCH_ARGS = [
 ]
 STEALTH_VIEWPORT = {"width": 1920, "height": 1080}
 
+_LOGIN_MAX_RETRIES = 4
+_LOGIN_PAGE_TIMEOUT_MS = 20_000
+
 
 async def _new_stealth_context(p, storage_state=None):
     browser = await p.chromium.launch(headless=True, args=STEALTH_LAUNCH_ARGS)
@@ -178,23 +181,23 @@ async def auth_page(request):
             else:
                 login_url = f"{BASE_URL}/account/login"
                 resp = None
-                for attempt in range(4):
+                for attempt in range(_LOGIN_MAX_RETRIES):
                     resp = await pg.goto(login_url, wait_until="networkidle")
                     if resp is None or resp.status != 429:
                         break
                     wait_s = 5 * (2 ** attempt) + random.uniform(-2, 2)
-                    print(f"\n⏳ HTTP 429 על login — ממתין {wait_s:.1f}s (ניסיון {attempt + 1}/4)")
+                    print(f"\n⏳ HTTP 429 על login — ממתין {wait_s:.1f}s (ניסיון {attempt + 1}/{_LOGIN_MAX_RETRIES})")
                     await asyncio.sleep(max(wait_s, 1))
                 else:
                     raise RuntimeError(
-                        "HTTP 429 — האתר חסם בקשות לאחר 4 ניסיונות. המתן כמה דקות והרץ שוב."
+                        f"HTTP 429 — האתר חסם בקשות לאחר {_LOGIN_MAX_RETRIES} ניסיונות. המתן כמה דקות והרץ שוב."
                     )
                 if resp and resp.status == 429:
                     raise RuntimeError(
                         "HTTP 429 — האתר חסם בקשות זמנית (rate limit). המתן 2-3 דקות והרץ שוב."
                     )
                 try:
-                    await pg.wait_for_selector("#username", state="visible", timeout=20000)
+                    await pg.wait_for_selector("#username", state="visible", timeout=_LOGIN_PAGE_TIMEOUT_MS)
                 except Exception:
                     await pg.screenshot(path=str(SCREENSHOTS_DIR / "login_failed.png"))
                     raise RuntimeError(

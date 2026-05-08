@@ -5,6 +5,7 @@ from config.settings import BASE_URL
 
 
 _MAX_PAGES = 50
+_ITEMS_TIMEOUT_MS = 15_000
 
 
 class ReadingListPage(BasePage):
@@ -19,7 +20,7 @@ class ReadingListPage(BasePage):
         total = 0
         for _ in range(_MAX_PAGES):
             try:
-                await self.page.wait_for_selector(self.BOOK_ITEMS, timeout=15000)
+                await self.page.wait_for_selector(self.BOOK_ITEMS, timeout=_ITEMS_TIMEOUT_MS)
             except PlaywrightTimeoutError:
                 break  # אין ספרים בדף — סוף הרשימה
             items = await self.page.query_selector_all(self.BOOK_ITEMS)
