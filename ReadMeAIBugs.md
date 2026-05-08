@@ -358,3 +358,27 @@ try:
 except PlaywrightTimeoutError:
     break  # אין ספרים בדף — סוף הרשימה
 ```
+
+---
+
+## באג 12 — False positive ב-`test_full_flow` כש-delta הוא 0 (נמצא בניתוח קוד)
+
+**קוד בעייתי:**
+```python
+if want_to_read_count == 0:
+    await flows.assert_reading_list_count(count_before)  # תמיד עובר
+```
+
+**הסבר:** אם כל הספרים כבר ברשימה (מריצה קודמת), `want_to_read_count == 0` וה-assertion הוא `count_before == count_before` — תמיד True. הטסט עובר ב-green למרות שלא בדק כלום. זה false positive קלאסי: CI ירוק, הפיצ'ר לא נבדק.
+
+**שגיאה:** אין שגיאה — זה בדיוק הבעיה.
+
+**תיקון:** `pytest.skip` במקום assertion שקרי:
+```python
+if want_to_read_count == 0:
+    pytest.skip("כל הספרים כבר ברשימה — הטסט לא הוסיף ספרים חדשים")
+
+await flows.assert_reading_list_count(count_before + want_to_read_count)
+```
+
+**למה skip ולא fail:** הstate לגיטימי — הספרים כבר קיימים מריצה קודמת. `fail` אומר "משהו שבור". `skip` אומר "לא יכולתי לבדוק כרגע" — ב-Allure יופיע צהוב עם סיבה ברורה, לא ירוק שקרי.
