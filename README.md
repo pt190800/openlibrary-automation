@@ -141,7 +141,7 @@ Handles `/account/books/want-to-read`.
 | Method | What it does |
 |--------|-------------|
 | `open()` | Navigates to the want-to-read page via `BasePage.navigate()` |
-| `get_book_count()` | Counts `ul.list-books li.searchResultItem` items across **all pages** (max 50) via pagination loop; 15s timeout per page — returns total |
+| `get_book_count()` | Counts `ul.list-books li.searchResultItem` items across **all pages** (max `_MAX_PAGES=50`) via pagination loop; `_ITEMS_TIMEOUT_MS=15s` timeout per page — breaks only on `PlaywrightTimeoutError` (end of list), re-raises network/429 errors — returns total |
 
 ---
 
