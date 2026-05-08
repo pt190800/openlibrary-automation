@@ -1,6 +1,7 @@
 import os
 import re
 import time
+import shutil
 import asyncio
 import random
 import pytest
@@ -17,6 +18,14 @@ SCREENSHOTS_DIR = Path("screenshots")
 TRACES_DIR = Path("reports/traces")
 SCREENSHOTS_DIR.mkdir(exist_ok=True)
 TRACES_DIR.mkdir(parents=True, exist_ok=True)
+
+
+def pytest_sessionstart(session):
+    """מנקה screenshots וtraces מריצות קודמות לפני תחילת הסשן."""
+    for directory in (SCREENSHOTS_DIR, TRACES_DIR):
+        if directory.exists():
+            shutil.rmtree(directory)
+        directory.mkdir(parents=True, exist_ok=True)
 
 STEALTH_UA = (
     "Mozilla/5.0 (X11; Linux x86_64) "
