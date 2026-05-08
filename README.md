@@ -198,10 +198,10 @@ Standalone utility for page load measurement.
 ### Fixtures & hooks — [tests/conftest.py](tests/conftest.py)
 
 #### `page` fixture
-Stealth Chromium context (no session), tracing enabled. Cleaned up with trace zip on teardown.
+Stealth Chromium context (no session), tracing enabled. Registers a console error listener before the test runs. On teardown: if the test failed, captures full-page screenshot + URL + title + collected console errors + HTML snapshot and attaches all to Allure. Saves trace zip and closes browser.
 
 #### `auth_page` fixture
-Tries `session.json` first; if absent, logs in with `.env` credentials including `verify_human` page handling. Same stealth context and trace lifecycle as `page`.
+Tries `session.json` first; if absent, logs in with `.env` credentials including `verify_human` page handling. Same stealth context, console capture, failure capture, and trace lifecycle as `page`.
 
 #### Stealth browser config
 
@@ -213,11 +213,14 @@ Tries `session.json` first; if absent, logs in with `.env` credentials including
 | Viewport | 1920 × 1080 |
 | Tracing | screenshots + snapshots + sources per test |
 
+#### `pytest_sessionstart` hook
+Wipes `screenshots/` and `reports/traces/` before the session starts — ensures each run starts clean without accumulating files from previous runs.
+
 #### `pytest_runtest_setup` hook
 Sleeps `random.uniform(8, 14)` seconds before every test except `TestPerformance` — prevents HTTP 429 from burst requests.
 
 #### `pytest_runtest_makereport` hook
-On test failure: captures full-page screenshot, current URL + title, console errors, HTML snapshot — attaches all to Allure.
+Stores the test result on the item (`rep_setup`, `rep_call`, `rep_teardown`) so fixtures can read it during teardown to decide whether to run failure capture.
 
 ---
 
@@ -344,6 +347,8 @@ tests/test_openlibrary.py::TestPerformance::test_performance           PASSED
 
 6 passed in ~3 minutes
 ```
+
+> `test_full_flow` may show `SKIPPED` instead of `PASSED` if all searched books are already in the reading list from a previous run. This is expected — re-run after adding new books or waiting for the list to change.
 
 **Auto-generated files:**
 - `screenshots/` — screenshot per book added + failure screenshots
