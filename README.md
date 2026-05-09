@@ -207,7 +207,7 @@ Tries `session.json` first; if absent, logs in with `.env` credentials including
 
 | Setting | Value |
 |---------|-------|
-| User-Agent | `Chrome/124.0.0.0` (Linux x86_64) |
+| User-Agent | `Chrome/124.0.0.0` (Linux x86_64) — hardcoded, works on all platforms |
 | Init script | Removes `navigator.webdriver`, fakes `plugins` + `languages`, injects `chrome.runtime` |
 | Launch args | `--disable-blink-features=AutomationControlled`, `--no-sandbox`, `--disable-dev-shm-usage`, `--window-size=1920,1080`, `--disable-gpu` |
 | Viewport | 1920 × 1080 |
@@ -266,15 +266,20 @@ Test assertion:  actual == count_before + want_to_read_count
 
 ### 1 — Create and activate a virtual environment
 
-Ubuntu 24.04+ blocks system-wide pip installs — use a virtual environment:
-
+**Linux / macOS**
 ```bash
 python3 -m venv venv
 source venv/bin/activate
 ```
 
-> **Re-activate before every session:** `source venv/bin/activate`  
-> Your prompt will show `(venv)` when the environment is active.
+**Windows (PowerShell)**
+```powershell
+python -m venv venv
+.\venv\Scripts\Activate.ps1
+```
+
+> **Re-activate before every session** — your prompt will show `(venv)` when active.  
+> Ubuntu 24.04+: blocks system-wide pip installs, so a virtual environment is required.
 
 ### 2 — Install Python dependencies
 
@@ -292,14 +297,28 @@ playwright install chromium
 
 ### 4 — Install Java (required for Allure)
 
+**Linux (Ubuntu/Debian)**
 ```bash
 sudo apt install default-jre -y
 ```
 
+**macOS**
+```bash
+brew install openjdk
+```
+
+**Windows** — download and install from [java.com](https://www.java.com/en/download/)
+
 ### 5 — Install Allure CLI
 
+**Linux / Windows**
 ```bash
 npm install -g allure-commandline
+```
+
+**macOS** (recommended)
+```bash
+brew install allure
 ```
 
 ### 6 — Save your session (required for reading list tests)
