@@ -16,6 +16,9 @@ class ReadingListPage(BasePage):
     async def open(self):
         await self.navigate(f"{BASE_URL}/account/books/want-to-read")
 
+    async def open_already_read(self):
+        await self.navigate(f"{BASE_URL}/account/books/already-read")
+
     async def get_book_count(self) -> int:
         total = 0
         for _ in range(_MAX_PAGES):

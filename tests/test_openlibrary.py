@@ -142,12 +142,9 @@ class TestReadingList:
 
         count_before = await flows.get_reading_list_count()
 
-        want_to_read_count = await flows.add_books_to_reading_list(urls)
+        await flows.add_books_to_reading_list(urls)
 
-        if want_to_read_count == 0:
-            pytest.skip("כל הספרים כבר ברשימה — הטסט לא הוסיף ספרים חדשים")
-
-        await flows.assert_reading_list_count(count_before + want_to_read_count)
+        await flows.assert_reading_list_count(count_before + len(urls))
 
 
 @allure.feature("Performance")

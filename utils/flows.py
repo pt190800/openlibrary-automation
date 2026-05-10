@@ -36,10 +36,8 @@ class LibraryFlows:
             )
 
     @allure.step("Add books to reading list")
-    async def add_books_to_reading_list(self, urls: list[str]) -> int:
-        """Returns the number of books added to 'Want to Read' (excluding 'Already Read')."""
+    async def add_books_to_reading_list(self, urls: list[str]) -> None:
         book = BookPage(self.page)
-        want_to_read_count = 0
         for i, url in enumerate(urls):
             with allure.step(f"Book {i + 1}/{len(urls)}: {url}"):
                 await book.navigate(url)
@@ -50,23 +48,28 @@ class LibraryFlows:
                     allure.attach.file(
                         screenshot, name=url, attachment_type=allure.attachment_type.PNG
                     )
-                if action == "Want to Read":
-                    want_to_read_count += 1
-                elif action == "Already Read":
-                    logger.info(f"Book added to 'Already Read' — not counted in want-to-read: {url}")
-        return want_to_read_count
+
+    async def _get_shelf_count(self, rl: ReadingListPage, shelf: str) -> int:
+        if shelf == "already-read":
+            await rl.open_already_read()
+        else:
+            await rl.open()
+        return await rl.get_book_count()
 
     @allure.step("Get reading list count")
     async def get_reading_list_count(self) -> int:
         await self._assert_session()
         rl = ReadingListPage(self.page)
-        return await rl.get_book_count()
+        want = await self._get_shelf_count(rl, "want-to-read")
+        already = await self._get_shelf_count(rl, "already-read")
+        return want + already
 
     @allure.step("Assert reading list count = {expected_count}")
     async def assert_reading_list_count(self, expected_count: int) -> None:
         rl = ReadingListPage(self.page)
-        await rl.open()
-        actual = await rl.get_book_count()
+        want = await self._get_shelf_count(rl, "want-to-read")
+        already = await self._get_shelf_count(rl, "already-read")
+        actual = want + already
         screenshot = await rl.take_screenshot("reading_list_assert")
         if screenshot:
             allure.attach.file(
