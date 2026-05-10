@@ -36,18 +36,22 @@ class LibraryFlows:
             )
 
     @allure.step("Add books to reading list")
-    async def add_books_to_reading_list(self, urls: list[str]) -> None:
+    async def add_books_to_reading_list(self, urls: list[str]) -> int:
         book = BookPage(self.page)
+        added = 0
         for i, url in enumerate(urls):
             with allure.step(f"Book {i + 1}/{len(urls)}: {url}"):
                 await book.navigate(url)
                 action = await book.add_to_reading_list()
+                if action != "not_added":
+                    added += 1
                 screenshot = await book.take_screenshot(url)
                 logger.info(f"[{action}] {url} → {screenshot}")
                 if screenshot:
                     allure.attach.file(
                         screenshot, name=url, attachment_type=allure.attachment_type.PNG
                     )
+        return added
 
     async def _get_shelf_count(self, rl: ReadingListPage, shelf: str) -> int:
         if shelf == "already-read":
