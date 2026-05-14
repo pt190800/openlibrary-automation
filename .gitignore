@@ -8,3 +8,7 @@ reports/
 performance_report.json
 venv/
 extract_session.py
+BOOKLET.md
+BOOKLET_print.html
+presentation.html
+presentation_flow.html
