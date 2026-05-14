@@ -103,7 +103,7 @@ Handles the OpenLibrary search results page.
 | `get_result_items()` | Returns all `li.searchResultItem` handles on the current page |
 | `has_next_page()` | Checks if `NEXT_PAGE` selector exists |
 | `go_to_next_page()` | Click next → wait for load → pagination delay |
-| `_extract_year(text)` | Static method: regex `\b(1[0-9]{3}\|20[012][0-9])\b` on the "First published in XXXX" string — robust against extra text |
+| `_extract_year(text)` | Static method: regex `\b(1[0-9]{3}\|20[0-9]{2})\b` on the "First published in XXXX" string — covers years 1000–2099 |
 | `collect_urls_under_year(max_year, limit)` | Core loop: iterate results → parse year → filter → collect href → paginate until `limit` reached or no more pages |
 
 ---
@@ -121,7 +121,6 @@ Handles an individual book's works page on OpenLibrary.
 | `DROPDOWN_TOGGLE` | `a.generic-dropper__dropclick` |
 | `WANT_TO_READ_BTN` | `div.read-statuses button:has-text('Want to Read')` |
 | `ALREADY_READ_BTN` | `div.read-statuses button:has-text('Already Read')` |
-| `CURRENTLY_READING_BTN` | `div.read-statuses button:has-text('Currently Reading')` |
 
 **Methods:**
 
@@ -140,7 +139,8 @@ Handles `/account/books/want-to-read`.
 
 | Method | What it does |
 |--------|-------------|
-| `open()` | Navigates to the want-to-read page via `BasePage.navigate()` |
+| `open()` | Navigates to `/account/books/want-to-read` via `BasePage.navigate()` |
+| `open_already_read()` | Navigates to `/account/books/already-read` via `BasePage.navigate()` |
 | `get_book_count()` | Counts `ul.list-books li.searchResultItem` items across **all pages** (max `_MAX_PAGES=50`) via pagination loop; `_ITEMS_TIMEOUT_MS=15s` timeout per page — breaks only on `PlaywrightTimeoutError` (end of list), re-raises network/429 errors — returns total |
 
 ---
@@ -152,10 +152,10 @@ Orchestrator class — uses all three page objects to implement the three core E
 | Method | Allure step | What it does |
 |--------|-------------|-------------|
 | `search_books_by_title_under_year(query, max_year, limit)` | ✓ | Creates `SearchPage`, navigates to `/search?q={query}`, calls `collect_urls_under_year` |
-| `_assert_session()` | — | Navigates to want-to-read page; raises if redirected to login |
-| `add_books_to_reading_list(urls)` | ✓ | Per URL: navigate, `add_to_reading_list()`, screenshot, Allure attach; returns count of "Want to Read" adds only |
-| `get_reading_list_count()` | ✓ | `_assert_session()` → `ReadingListPage.get_book_count()` |
-| `assert_reading_list_count(expected)` | ✓ | Opens list, counts, takes screenshot, asserts `actual == expected` |
+| `add_books_to_reading_list(urls)` | ✓ | Per URL: navigate, `add_to_reading_list()`, screenshot, Allure attach; returns count of books actually added (both "Want to Read" and "Already Read") |
+| `_get_shelf_count(rl, shelf)` | — | Opens want-to-read or already-read shelf, checks for login redirect, returns `get_book_count()` |
+| `get_reading_list_count()` | ✓ | Sums both shelves via `_get_shelf_count` — want-to-read + already-read |
+| `assert_reading_list_count(expected)` | ✓ | Sums both shelves, takes screenshot, asserts `actual == expected` |
 
 ---
 
@@ -247,7 +247,7 @@ LibraryFlows (flows.py)
       └──► ReadingListPage.get_book_count()
                 └── paginate want-to-read page, sum ul.list-books li.searchResultItem
 
-Test assertion:  actual == count_before + want_to_read_count
+Test assertion:  actual == count_before + added
 ```
 
 ---
@@ -460,7 +460,7 @@ Profile selected via `TEST_PROFILE=quick` / `TEST_PROFILE=full` (default: `quick
 |---------|----------|
 | HTTP 429 (rate limit) | Exponential backoff: 5s → 10s → 20s → 40s ± 2s jitter (4 attempts) |
 | Bot detection | Human mouse movement — random paths with overshoot before every click |
-| Session expiry | `_assert_session()` + `_assert_authenticated()` before every action |
+| Session expiry | `_get_shelf_count()` checks for login redirect after each shelf navigation; `_assert_authenticated()` checks before every book action |
 | Already-listed books | `unactivated` class check on primary button — skips books already in any list |
 | Book not actually added | Post-click `_is_unactivated()` check — returns `"not_added"` if button didn't change |
 | Pagination infinite loop | `_MAX_PAGES = 50` guard in `get_book_count()` — loop exits after 50 pages |
