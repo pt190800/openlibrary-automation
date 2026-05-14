@@ -183,4 +183,6 @@ class TestPerformance:
             )
             logger.warning("Slow pages:\n" + "\n".join(slow_pages))
 
+        assert len(reporter.results) == 3, \
+            f"Expected 3 performance measurements, got {len(reporter.results)}"
         assert report_path.exists()

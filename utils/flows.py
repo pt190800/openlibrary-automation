@@ -25,16 +25,6 @@ class LibraryFlows:
         await search.navigate(f"{BASE_URL}/search?q={quote_plus(query)}")
         return await search.collect_urls_under_year(max_year, limit)
 
-    async def _assert_session(self) -> None:
-        await self.page.goto(
-            f"{BASE_URL}/account/books/want-to-read", wait_until="domcontentloaded"
-        )
-        if "/account/login" in self.page.url:
-            raise RuntimeError(
-                "הסשן אינו תקין — האתר הפנה לדף הלוגין.\n"
-                "הרץ: python3 save_session.py כדי לחדש את session.json"
-            )
-
     @allure.step("Add books to reading list")
     async def add_books_to_reading_list(self, urls: list[str]) -> int:
         book = BookPage(self.page)
@@ -58,11 +48,15 @@ class LibraryFlows:
             await rl.open_already_read()
         else:
             await rl.open()
+        if "/account/login" in self.page.url:
+            raise RuntimeError(
+                "הסשן אינו תקין — האתר הפנה לדף הלוגין.\n"
+                "הרץ: python3 save_session.py כדי לחדש את session.json"
+            )
         return await rl.get_book_count()
 
     @allure.step("Get reading list count")
     async def get_reading_list_count(self) -> int:
-        await self._assert_session()
         rl = ReadingListPage(self.page)
         want = await self._get_shelf_count(rl, "want-to-read")
         already = await self._get_shelf_count(rl, "already-read")

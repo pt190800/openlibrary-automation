@@ -30,7 +30,7 @@ class SearchPage(BasePage):
 
     @staticmethod
     def _extract_year(text: str) -> int | None:
-        matches = re.findall(r'\b(1[0-9]{3}|20[012][0-9])\b', text)
+        matches = re.findall(r'\b(1[0-9]{3}|20[0-9]{2})\b', text)
         return int(matches[0]) if matches else None
 
     async def collect_urls_under_year(self, max_year: int, limit: int) -> list[str]:

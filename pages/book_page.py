@@ -11,7 +11,6 @@ class BookPage(BasePage):
     DROPDOWN_TOGGLE  = "a.generic-dropper__dropclick"
     WANT_TO_READ_BTN = "div.read-statuses button:has-text('Want to Read')"
     ALREADY_READ_BTN = "div.read-statuses button:has-text('Already Read')"
-    CURRENTLY_READING_BTN = "div.read-statuses button:has-text('Currently Reading')"
 
     async def _assert_authenticated(self):
         await self.page.wait_for_load_state("domcontentloaded", timeout=10000)

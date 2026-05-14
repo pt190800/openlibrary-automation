@@ -12,6 +12,7 @@ from playwright.async_api import async_playwright
 from dotenv import load_dotenv
 
 from config.settings import BASE_URL
+from pages.base_page import _MAX_RETRIES as _LOGIN_MAX_RETRIES
 
 load_dotenv()
 SCREENSHOTS_DIR = Path("screenshots")
@@ -47,7 +48,6 @@ STEALTH_LAUNCH_ARGS = [
 ]
 STEALTH_VIEWPORT = {"width": 1920, "height": 1080}
 
-_LOGIN_MAX_RETRIES = 4
 _LOGIN_PAGE_TIMEOUT_MS = 20_000
 
 
