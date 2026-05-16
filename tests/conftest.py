@@ -199,6 +199,10 @@ async def auth_page(request):
             await ctx.tracing.start(screenshots=True, snapshots=True, sources=True)
             pg = await ctx.new_page()
 
+        console_errors: list[str] = []
+        pg.on("console", lambda msg: console_errors.append(f"[{msg.type}] {msg.text}")
+              if msg.type in ("error", "warning") else None)
+
         if not session_file.exists():
             if not username or not password:
                 print("\n⚠️  OL_USERNAME / OL_PASSWORD חסרים ב-.env — טסטי auth ידולגו")
@@ -279,10 +283,6 @@ async def auth_page(request):
                             "הרץ: python3 save_session.py כדי להתחבר ידנית."
                         )
                     await pg.wait_for_load_state("networkidle")
-
-        console_errors: list[str] = []
-        pg.on("console", lambda msg: console_errors.append(f"[{msg.type}] {msg.text}")
-              if msg.type in ("error", "warning") else None)
 
         yield pg
 

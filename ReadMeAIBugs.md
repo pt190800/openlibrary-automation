@@ -299,36 +299,42 @@ async def add_books_to_reading_list(self, urls: list[str]) -> int:
 
 ---
 
-## באג 10 — console listener נרשם אחרי הכישלון (נמצא בניתוח קוד)
+## באג 10 — console listener ב-`auth_page` נרשם אחרי הלוגין (נמצא בניתוח קוד)
 
 **קוד בעייתי:**
 ```python
-async def _capture_failure(page, node_id: str):
-    console_errors: list[str] = []
-    page.on("console", lambda msg: ...)  # ← נרשם אחרי שהטסט כבר נכשל
+@pytest_asyncio.fixture
+async def auth_page(request):
+    ...
+    pg = await ctx.new_page()
+
+    if not session_file.exists():
+        # כל ה-login flow כאן — goto, fill, click, verify_human
+        ...
+
+    console_errors: list[str] = []          # ← נרשם רק כאן
+    pg.on("console", lambda msg: ...)       # ← אחרי הלוגין כבר הסתיים
+    yield pg
 ```
 
-**הסבר:** `_capture_failure` נקראה מה-hook `pytest_runtest_makereport` לאחר כישלון. בשלב זה כל ה-console events (JS errors, network warnings) שהתרחשו במהלך הטסט כבר עברו — הlistener החדש לא קולט כלום. בנוסף, `loop.create_task()` יצר את ה-coroutine ללא `await`, כך שהdפדפן עלול להיסגר לפני שה-screenshot נלקח.
+**הסבר:** ב-`page` fixture ה-listener נרשם לפני `yield` ולפני כל פעולה — נכון. אך ב-`auth_page`, ה-listener נרשם **אחרי** כל flow הלוגין (goto, fill, submit, verify_human). שגיאות JS שקורות בדף הלוגין — כגון תגובת שגיאה מהשרת, CAPTCHA JS, או redirect errors — לא נתפסות.
 
-**שגיאה:** ה-"Console errors" בAllure תמיד ריק, גם כשהיו שגיאות JS בדף.
+**שגיאה:** "Console errors" בAllure ריק במקרי כישלון בלוגין, גם כשהיו שגיאות JS ברורות בדף.
 
-**תיקון:** רישום ה-listener בfixture לפני `yield`, והעברתו ל-`_capture_failure` כפרמטר:
+**תיקון:** רישום ה-listener מיד אחרי יצירת `pg`, לפני כל פעולת ניווט:
 
 ```python
-@pytest_asyncio.fixture
-async def page(request):
+pg = await ctx.new_page()
+
+console_errors: list[str] = []          # ← מיד אחרי יצירת הדף
+pg.on("console", lambda msg: console_errors.append(f"[{msg.type}] {msg.text}")
+      if msg.type in ("error", "warning") else None)
+
+if not session_file.exists():
+    # login flow — עכשיו שגיאות JS נתפסות
     ...
-    console_errors: list[str] = []
-    pg.on("console", lambda msg: console_errors.append(...)
-          if msg.type in ("error", "warning") else None)
-    yield pg
-    rep = getattr(request.node, "rep_call", None)
-    if rep and rep.failed:
-        await _capture_failure(pg, request.node.nodeid, console_errors)
-    try:
-        await ctx.tracing.stop(path=trace_path)
-    finally:
-        await browser.close()
+
+yield pg
 ```
 
 ---
