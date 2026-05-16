@@ -27,13 +27,15 @@ class BookPage(BasePage):
             if await self.page.query_selector(sel):
                 raise RuntimeError(f"CAPTCHA זוהה. URL: {url}\nהמתן מספר דקות והרץ שוב.")
 
-    async def _is_unactivated(self) -> bool:
-        """Return True if the book is not yet in any reading list."""
+    async def _is_unactivated(self) -> bool | None:
+        """True = not in any list. False = already in a list. None = button not found (broken selector)."""
         btn = await self.page.query_selector(self.PRIMARY_BTN)
-        if btn and await btn.is_visible():
-            classes = await btn.get_attribute("class") or ""
-            return "unactivated" in classes
-        return False
+        if btn is None:
+            return None
+        if not await btn.is_visible():
+            return False
+        classes = await btn.get_attribute("class") or ""
+        return "unactivated" in classes
 
     async def _click_via_dropdown(self, selector: str) -> bool:
         """Open dropdown and click a button inside div.read-statuses."""
@@ -53,8 +55,14 @@ class BookPage(BasePage):
 
     async def add_to_reading_list(self) -> str:
         await self._assert_authenticated()
-        if not await self._is_unactivated():
-            logger.info(f"Book already in reading list or no button: {self.page.url}")
+        status = await self._is_unactivated()
+        if status is None:
+            raise RuntimeError(
+                f"כפתור הרשימה לא נמצא — ייתכן שה-selector שבור: {self.PRIMARY_BTN}\n"
+                f"URL: {self.page.url}"
+            )
+        if not status:
+            logger.info(f"Book already in reading list: {self.page.url}")
             return "not_added"
 
         choice = random.choice(["Want to Read", "Already Read"])
