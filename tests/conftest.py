@@ -141,6 +141,18 @@ def pytest_runtest_makereport(item, call):
     setattr(item, f"rep_{rep.when}", rep)
 
 
+async def _fixture_teardown(pg, ctx, browser, request, console_errors: list[str]):
+    safe = re.sub(r"[^a-zA-Z0-9_-]", "_", request.node.nodeid)[:100]
+    trace_path = str(TRACES_DIR / f"{safe}.zip")
+    rep = getattr(request.node, "rep_call", None)
+    if rep and rep.failed:
+        await _capture_failure(pg, request.node.nodeid, console_errors)
+    try:
+        await ctx.tracing.stop(path=trace_path)
+    finally:
+        await browser.close()
+
+
 # ── fixtures ─────────────────────────────────────────────────────────────────
 
 @pytest_asyncio.fixture
@@ -156,15 +168,7 @@ async def page(request):
 
         yield pg
 
-        safe = re.sub(r"[^a-zA-Z0-9_-]", "_", request.node.nodeid)[:100]
-        trace_path = str(TRACES_DIR / f"{safe}.zip")
-        rep = getattr(request.node, "rep_call", None)
-        if rep and rep.failed:
-            await _capture_failure(pg, request.node.nodeid, console_errors)
-        try:
-            await ctx.tracing.stop(path=trace_path)
-        finally:
-            await browser.close()
+        await _fixture_teardown(pg, ctx, browser, request, console_errors)
 
 
 @pytest_asyncio.fixture
@@ -282,12 +286,4 @@ async def auth_page(request):
 
         yield pg
 
-        safe = re.sub(r"[^a-zA-Z0-9_-]", "_", request.node.nodeid)[:100]
-        trace_path = str(TRACES_DIR / f"{safe}.zip")
-        rep = getattr(request.node, "rep_call", None)
-        if rep and rep.failed:
-            await _capture_failure(pg, request.node.nodeid, console_errors)
-        try:
-            await ctx.tracing.stop(path=trace_path)
-        finally:
-            await browser.close()
+        await _fixture_teardown(pg, ctx, browser, request, console_errors)
